@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "personal-budget"
+version = "0.1.0"
+description = "Personal Budget Planner"
+authors = ["Elias Dorneles <elias.dorneles@hey.com>"]
+license = "Proprietary"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+textual = "^0.52.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.2"
+textual-dev = "^1.5.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
