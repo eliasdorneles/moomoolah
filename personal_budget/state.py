@@ -1,6 +1,6 @@
 import enum
 from collections import defaultdict
-from datetime import datetime
+from datetime import date
 from decimal import Decimal
 from pydantic import BaseModel
 
@@ -12,106 +12,121 @@ class RecurrenceType(enum.StrEnum):
 
 
 class Recurrence(BaseModel):
-    start_date: datetime
+    start_date: date
     type: RecurrenceType
     every: int = 1
-    end_date: datetime | None = None
+    end_date: date | None = None
 
-    def will_occur_on_month(self, date: datetime) -> bool:
+    def will_occur_on_month(self, month_date: date) -> bool:
         if self.type == RecurrenceType.ONE_TIME:
-            return self.start_date.month == date.month and self.start_date.year == date.year
+            return (
+                self.start_date.month == month_date.month
+                and self.start_date.year == month_date.year
+            )
         elif self.type == RecurrenceType.MONTHLY:
-            return date.month % self.every == self.start_date.month % self.every
+            return month_date.month % self.every == self.start_date.month % self.every
         elif self.type == RecurrenceType.ANNUAL:
-            return self.start_date.month == date.month
+            return self.start_date.month == month_date.month
+        raise ValueError(f"Invalid recurrence type: {self.type}")
 
 
-class FinancialEntryType(enum.StrEnum):
+class EntryType(enum.StrEnum):
     INCOME = "INCOME"
     EXPENSE = "EXPENSE"
-
-
-class FinancialEntryCategory(BaseModel):
-    name: str
-    description: str = ""
-
-    def __hash__(self):
-        return hash(self.name)
 
 
 class FinancialEntry(BaseModel):
     amount: Decimal
     description: str
-    type: FinancialEntryType
+    type: EntryType
     recurrence: Recurrence
-    category: FinancialEntryCategory
+    category: str
+
+    def will_occur_on_month(self, month: date) -> bool:
+        return self.recurrence.will_occur_on_month(month)
+
+
+class MonthlyForecast(BaseModel):
+    month: date
+    expenses_by_category: dict[str, Decimal]
+    income_by_category: dict[str, Decimal]
+
+    def get_balance(self) -> dict[str, Decimal]:
+        income = Decimal(sum(self.income_by_category.values()))
+        expenses = Decimal(sum(self.expenses_by_category.values()))
+        return {
+            "total_income": income,
+            "total_expenses": expenses,
+            "balance": income - expenses,
+        }
+
+    @classmethod
+    def from_financial_entries(
+        cls,
+        month: date,
+        income_entries: list[FinancialEntry],
+        expenses_entries: list[FinancialEntry],
+    ) -> "MonthlyForecast":
+        def _build_forecast_by_category_for_month(entries: list[FinancialEntry]) -> dict:
+            forecast = defaultdict(Decimal)
+            for entry in entries:
+                if entry.will_occur_on_month(month):
+                    forecast[entry.category] += entry.amount
+            return forecast
+
+        return cls(
+            month=month,
+            expenses_by_category=_build_forecast_by_category_for_month(expenses_entries),
+            income_by_category=_build_forecast_by_category_for_month(income_entries),
+        )
 
 
 class FinancialState(BaseModel):
-    _entries: dict[FinancialEntryType, list[FinancialEntry]] = {
-        FinancialEntryType.INCOME: [],
-        FinancialEntryType.EXPENSE: [],
+    _entries: dict[EntryType, list[FinancialEntry]] = {
+        EntryType.INCOME: [],
+        EntryType.EXPENSE: [],
     }
-    available_categories: dict[FinancialEntryType, set[FinancialEntryCategory]] = {
-        FinancialEntryType.INCOME: set(),
-        FinancialEntryType.EXPENSE: set(),
+    _available_categories: dict[EntryType, set[str]] = {
+        EntryType.INCOME: set(),
+        EntryType.EXPENSE: set(),
     }
 
     @property
-    def income_categories(self) -> set[FinancialEntryCategory]:
-        return self.available_categories[FinancialEntryType.INCOME]
+    def income_categories(self) -> set[str]:
+        return self._available_categories[EntryType.INCOME]
 
     @property
-    def expense_categories(self) -> set[FinancialEntryCategory]:
-        return self.available_categories[FinancialEntryType.EXPENSE]
+    def expense_categories(self) -> set[str]:
+        return self._available_categories[EntryType.EXPENSE]
 
-    def add_category(self, category: FinancialEntryCategory, entry_type: FinancialEntryType):
-        self.available_categories[entry_type].add(category)
+    def add_category(self, entry_type: EntryType, category: str):
+        self._available_categories[entry_type].add(category)
 
     @property
     def income_entries(self) -> list[FinancialEntry]:
-        return self._entries[FinancialEntryType.INCOME]
+        return self._entries[EntryType.INCOME]
 
     @property
     def expense_entries(self) -> list[FinancialEntry]:
-        return self._entries[FinancialEntryType.EXPENSE]
+        return self._entries[EntryType.EXPENSE]
 
     def add_entry(self, entry: FinancialEntry):
-        if entry.category not in self.available_categories[entry.type]:
-            raise ValueError(f"Category {entry.category} is not available for {entry.type} entries")
+        self._available_categories[entry.type].add(entry.category)
         self._entries[entry.type].append(entry)
 
     def remove_entry(self, entry: FinancialEntry):
         self._entries[entry.type].remove(entry)
 
-    def get_forecast_expenses_by_category_for_month(self, month: datetime) -> dict:
-        forecast = defaultdict(Decimal)
-        for entry in self.expense_entries:
-            if entry.recurrence.will_occur_on_month(month):
-                forecast[entry.category] += entry.amount
-        return forecast
+    def get_monthly_forecast(self, month: date) -> MonthlyForecast:
+        return MonthlyForecast.from_financial_entries(
+            month, self.income_entries, self.expense_entries
+        )
 
-    def get_forecast_income_by_category_for_month(self, month: datetime) -> dict:
-        forecast = defaultdict(Decimal)
-        for entry in self.income_entries:
-            if entry.recurrence.will_occur_on_month(month):
-                forecast[entry.category] += entry.amount
-        return forecast
-
-    def get_forecast_balance_for_month(self, month: datetime) -> dict[str, Decimal]:
-        income = Decimal(sum(self.get_forecast_income_by_category_for_month(month).values()))
-        expenses = Decimal(sum(self.get_forecast_expenses_by_category_for_month(month).values()))
-        return {
-            "income": income,
-            "expenses": expenses,
-            "balance": income - expenses,
-        }
-
-    def get_forecast_balance_for_next_n_months(self, n: int) -> list[dict[str, Decimal]]:
+    def get_forecast_for_next_n_months(self, n: int) -> dict[str, MonthlyForecast]:
         assert n > 0, "n must be a positive integer"
-        forecast = []
-        today = datetime.now()
+        forecast: dict[str, MonthlyForecast] = {}
+        today = date.today()
         for i in range(n):
             month = today.replace(month=today.month + i)
-            forecast.append({"month": month, "balance": self.get_forecast_balance_for_month(month)})
+            forecast[f"{month.year}-{month.month}"] = self.get_monthly_forecast(month)
         return forecast
