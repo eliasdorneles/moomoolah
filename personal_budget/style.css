@@ -1,0 +1,22 @@
+#expenses_label {
+  color: $warning;
+  border: tall yellow;
+  width: 100%;
+  text-align: center;
+}
+
+#income_label {
+  color: $success;
+  margin-top: 1;
+  border: tall green;
+  width: 100%;
+  text-align: center;
+}
+
+#actions {
+    margin-top: 2;
+}
+
+#actions Button {
+  margin-left: 3;
+}

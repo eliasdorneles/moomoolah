@@ -1,8 +1,17 @@
 import enum
 from collections import defaultdict
 from datetime import date
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from pydantic import BaseModel
+
+
+def to_ordinal(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
 
 
 class RecurrenceType(enum.StrEnum):
@@ -27,6 +36,18 @@ class Recurrence(BaseModel):
             return month_date.month % self.every == self.start_date.month % self.every
         elif self.type == RecurrenceType.ANNUAL:
             return self.start_date.month == month_date.month
+        raise ValueError(f"Invalid recurrence type: {self.type}")
+
+    @property
+    def description(self) -> str:
+        if self.type == RecurrenceType.ONE_TIME:
+            return f"Once on {self.start_date}"
+        elif self.type == RecurrenceType.MONTHLY and self.every == 1:
+            return f"Monthly on the {to_ordinal(self.start_date.day)}"
+        elif self.type == RecurrenceType.MONTHLY:
+            return f"Every {self.every} months on the {to_ordinal(self.start_date.day)}"
+        elif self.type == RecurrenceType.ANNUAL:
+            return f"Annually on the {to_ordinal(self.start_date.day)} of {self.start_date.strftime('%B')}"
         raise ValueError(f"Invalid recurrence type: {self.type}")
 
 
@@ -82,40 +103,40 @@ class MonthlyForecast(BaseModel):
 
 
 class FinancialState(BaseModel):
-    _entries: dict[EntryType, list[FinancialEntry]] = {
+    all_entries: dict[EntryType, list[FinancialEntry]] = {
         EntryType.INCOME: [],
         EntryType.EXPENSE: [],
     }
-    _available_categories: dict[EntryType, set[str]] = {
+    available_categories_per_type: dict[EntryType, set[str]] = {
         EntryType.INCOME: set(),
         EntryType.EXPENSE: set(),
     }
 
     @property
     def income_categories(self) -> set[str]:
-        return self._available_categories[EntryType.INCOME]
+        return self.available_categories_per_type[EntryType.INCOME]
 
     @property
     def expense_categories(self) -> set[str]:
-        return self._available_categories[EntryType.EXPENSE]
+        return self.available_categories_per_type[EntryType.EXPENSE]
 
     def add_category(self, entry_type: EntryType, category: str):
-        self._available_categories[entry_type].add(category)
+        self.available_categories_per_type[entry_type].add(category)
 
     @property
     def income_entries(self) -> list[FinancialEntry]:
-        return self._entries[EntryType.INCOME]
+        return self.all_entries[EntryType.INCOME]
 
     @property
     def expense_entries(self) -> list[FinancialEntry]:
-        return self._entries[EntryType.EXPENSE]
+        return self.all_entries[EntryType.EXPENSE]
 
     def add_entry(self, entry: FinancialEntry):
-        self._available_categories[entry.type].add(entry.category)
-        self._entries[entry.type].append(entry)
+        self.available_categories_per_type[entry.type].add(entry.category)
+        self.all_entries[entry.type].append(entry)
 
     def remove_entry(self, entry: FinancialEntry):
-        self._entries[entry.type].remove(entry)
+        self.all_entries[entry.type].remove(entry)
 
     def get_monthly_forecast(self, month: date) -> MonthlyForecast:
         return MonthlyForecast.from_financial_entries(
@@ -127,6 +148,15 @@ class FinancialState(BaseModel):
         forecast: dict[str, MonthlyForecast] = {}
         today = date.today()
         for i in range(n):
-            month = today.replace(month=today.month + i)
+            month = today + relativedelta(months=i)
             forecast[f"{month.year}-{month.month}"] = self.get_monthly_forecast(month)
         return forecast
+
+    @classmethod
+    def from_json_file(cls, file_path: str) -> "FinancialState":
+        with open(file_path, "r") as file:
+            return cls.model_validate_json(file.read())
+
+    def to_json_file(self, file_path: str):
+        with open(file_path, "w") as file:
+            file.write(self.json())
