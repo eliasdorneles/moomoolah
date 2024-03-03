@@ -159,4 +159,4 @@ class FinancialState(BaseModel):
 
     def to_json_file(self, file_path: str):
         with open(file_path, "w") as file:
-            file.write(self.json())
+            file.write(self.model_dump_json(indent=2))
