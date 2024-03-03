@@ -4,10 +4,12 @@ from datetime import date
 from decimal import Decimal
 from rich.text import Text
 from textual.app import App, ComposeResult
-from textual import on
+from textual import on, work
+from textual.reactive import reactive
 from textual.containers import Container
 from textual.containers import Horizontal
 from textual.containers import Grid
+from textual.message import Message
 from textual.screen import ModalScreen
 from textual.screen import Screen
 from textual.widget import Widget
@@ -20,7 +22,6 @@ from textual.widgets import Label
 from textual.widgets import RadioButton
 from textual.widgets import RadioSet
 from textual.widgets import Select
-from textual import events
 from personal_budget.state import (
     EntryType,
     FinancialEntry,
@@ -38,21 +39,21 @@ class UpdateFinancialEntryModal(ModalScreen):
         super().__init__(*args, **kwargs)
         self.entry = entry
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         yield Label("", classes="modal-title-before")
         yield Label("Update Entry", classes="modal-title")
         with Grid(id="update-entry-form"):
             yield Label("Description:")
-            yield Input(value=self.entry.description)
+            yield Input(value=self.entry.description, id="entry_description")
 
             yield Label("Amount:")
-            yield Input(value=str(self.entry.amount))
+            yield Input(value=str(self.entry.amount), id="entry_amount")
 
             yield Label("Category:")
-            yield Input(value=str(self.entry.category))
+            yield Input(value=str(self.entry.category), id="entry_category")
 
             yield Label("Recurrence:")
-            with RadioSet(id="recurrence"):
+            with RadioSet(id="entry_recurrence"):
                 for rt in RecurrenceType:
                     yield RadioButton(
                         rt.name,
@@ -60,19 +61,48 @@ class UpdateFinancialEntryModal(ModalScreen):
                     )
 
             yield Label("Date:")
-            yield Input(value=str(self.entry.recurrence.start_date))
+            yield Input(value=str(self.entry.recurrence.start_date), id="entry_date")
 
             # TODO: only show this if recurrence is MONTHLY
             yield Label("Every X months?")
-            yield Input(value=str(self.entry.recurrence.every))
+            yield Input(value=str(self.entry.recurrence.every), id="entry_every")
 
-            yield Button("Save", id="save", variant="primary")
-            yield Button("Cancel", id="cancel")
+            yield Button("Save", id="entry_save", variant="primary")
+            yield Button("Cancel", id="entry_cancel")
 
-    @on(Button.Pressed, "#save")
-    def on_save(self, event: Button.Pressed) -> None:
-        # TODO: load values from grid and update entry
-        pass
+    def _get_values(self):
+        return {
+            "description": self.query_one("#entry_description", Input).value,
+            "amount": Decimal(self.query_one("#entry_amount", Input).value),
+            "category": self.query_one("#entry_category", Input).value,
+            "recurrence_type": RecurrenceType[
+                str(
+                    self.query_one("#entry_recurrence", RadioSet).pressed_button.label
+                ).upper()
+            ],
+            "start_date": date.fromisoformat(self.query_one("#entry_date", Input).value),
+            "every": int(self.query_one("#entry_every", Input).value),
+        }
+
+    @on(Button.Pressed, "#entry_save")
+    def on_save(self, _) -> None:
+        values = self._get_values()
+        entry = FinancialEntry(
+            description=values["description"],
+            amount=values["amount"],
+            category=values["category"],
+            type=self.entry.type,
+            recurrence=Recurrence(
+                type=values["recurrence_type"],
+                start_date=values["start_date"],
+                every=values["every"],
+            ),
+        )
+        self.dismiss(entry)
+
+    @on(Button.Pressed, "#entry_cancel")
+    def on_cancel(self, _) -> None:
+        self.dismiss(None)
 
 
 class FinancialEntriesScreen(Screen):
@@ -82,7 +112,7 @@ class FinancialEntriesScreen(Screen):
         super().__init__(*args, **kwargs)
         self.state = state
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         yield Header()
         yield Footer()
 
@@ -123,11 +153,15 @@ class FinancialEntriesScreen(Screen):
             self.state.income_entries,
         )
 
+    @work
     @on(DataTable.RowSelected, "#expenses")
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+    async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         # TODO: check if there is a surer way of mapping the row to the entry
         entry = self.state.expense_entries[event.cursor_row]
-        self.app.push_screen(UpdateFinancialEntryModal(entry))
+        result = await self.app.push_screen_wait(UpdateFinancialEntryModal(entry))
+        if result:
+            # TODO: update the entry in the state and refresh the table
+            self.notify(f"Updated entry {result.description}", title="Entry updated")
 
 
 class BudgetApp(App):
@@ -157,7 +191,7 @@ class BudgetApp(App):
 
         self.state_file = state_file
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         yield Header()
         yield Footer()
 
