@@ -3,16 +3,22 @@ import os
 from datetime import date
 from decimal import Decimal
 from rich.text import Text
-from textual.app import App
+from textual.app import App, ComposeResult
+from textual import on
 from textual.containers import Container
 from textual.containers import Horizontal
+from textual.containers import Grid
+from textual.screen import ModalScreen
 from textual.screen import Screen
 from textual.widget import Widget
+from textual.widgets import Input
 from textual.widgets import Footer
 from textual.widgets import Header
 from textual.widgets import DataTable
 from textual.widgets import Button
 from textual.widgets import Label
+from textual.widgets import RadioButton
+from textual.widgets import RadioSet
 from textual.widgets import Select
 from textual import events
 from personal_budget.state import (
@@ -22,6 +28,51 @@ from personal_budget.state import (
     Recurrence,
     RecurrenceType,
 )
+
+
+class UpdateFinancialEntryModal(ModalScreen):
+    SUB_TITLE = "Update entry"
+    BINDINGS = [("escape", "app.pop_screen", "Cancel")]
+
+    def __init__(self, entry: FinancialEntry, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.entry = entry
+
+    def compose(self):
+        yield Label("", classes="modal-title-before")
+        yield Label("Update Entry", classes="modal-title")
+        with Grid(id="update-entry-form"):
+            yield Label("Description:")
+            yield Input(value=self.entry.description)
+
+            yield Label("Amount:")
+            yield Input(value=str(self.entry.amount))
+
+            yield Label("Category:")
+            yield Input(value=str(self.entry.category))
+
+            yield Label("Recurrence:")
+            with RadioSet(id="recurrence"):
+                for rt in RecurrenceType:
+                    yield RadioButton(
+                        rt.name,
+                        value=rt == self.entry.recurrence.type,
+                    )
+
+            yield Label("Date:")
+            yield Input(value=str(self.entry.recurrence.start_date))
+
+            # TODO: only show this if recurrence is MONTHLY
+            yield Label("Every X months?")
+            yield Input(value=str(self.entry.recurrence.every))
+
+            yield Button("Save", id="save", variant="primary")
+            yield Button("Cancel", id="cancel")
+
+    @on(Button.Pressed, "#save")
+    def on_save(self, event: Button.Pressed) -> None:
+        # TODO: load values from grid and update entry
+        pass
 
 
 class FinancialEntriesScreen(Screen):
@@ -71,6 +122,12 @@ class FinancialEntriesScreen(Screen):
             self.query_one("#income", DataTable),
             self.state.income_entries,
         )
+
+    @on(DataTable.RowSelected, "#expenses")
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        # TODO: check if there is a surer way of mapping the row to the entry
+        entry = self.state.expense_entries[event.cursor_row]
+        self.app.push_screen(UpdateFinancialEntryModal(entry))
 
 
 class BudgetApp(App):

@@ -14,9 +14,43 @@
 }
 
 #actions {
-    margin-top: 2;
+  margin-top: 2;
 }
 
 #actions Button {
   margin-left: 3;
+}
+
+UpdateFinancialEntryModal {
+  align: center middle;
+}
+
+/* TODO: align the labels with inputs */
+
+UpdateFinancialEntryModal Grid {
+  grid-size: 2;
+  grid-columns: 1fr 2fr;
+  border: outer $warning;
+  padding: 0 3;
+  width: 60;
+  height: 32;
+}
+
+Label.modal-title {
+  color: $primary;
+  background: $warning;
+  padding-left: 2;
+  width: 60;
+}
+
+/* here we make the label the same size as input controls */
+UpdateFinancialEntryModal Grid Label {
+  height: 3;
+  content-align: right middle;
+  padding: 0 1;
+  width: 100%;
+}
+
+UpdateFinancialEntryModal RadioSet {
+  width: 100%;
 }
