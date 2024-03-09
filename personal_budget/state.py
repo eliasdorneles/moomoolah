@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 def to_ordinal(n: int) -> str:
@@ -57,11 +57,15 @@ class EntryType(enum.StrEnum):
 
 
 class FinancialEntry(BaseModel):
-    amount: Decimal
-    description: str
-    type: EntryType
-    recurrence: Recurrence
-    category: str
+    amount: Decimal = Decimal(0)
+    description: str = ""
+    type: EntryType = EntryType.EXPENSE
+    recurrence: Recurrence = Field(
+        default_factory=lambda: Recurrence(
+            type=RecurrenceType.MONTHLY, start_date=date.today()
+        )
+    )
+    category: str = ""
 
     def will_occur_on_month(self, month: date) -> bool:
         return self.recurrence.will_occur_on_month(month)

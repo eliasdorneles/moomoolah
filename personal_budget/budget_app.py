@@ -35,13 +35,16 @@ class UpdateFinancialEntryModal(ModalScreen):
     SUB_TITLE = "Update entry"
     BINDINGS = [("escape", "app.pop_screen", "Cancel")]
 
-    def __init__(self, entry: FinancialEntry, *args, **kwargs):
+    def __init__(
+        self, entry: FinancialEntry, modal_title="Update Entry", *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.entry = entry
+        self.modal_title = modal_title
 
     def compose(self) -> ComposeResult:
         yield Label("", classes="modal-title-before")
-        yield Label("Update Entry", classes="modal-title")
+        yield Label(self.modal_title, classes="modal-title")
         with Grid(id="update-entry-form"):
             yield Label("Description:")
             yield Input(value=self.entry.description, id="entry_description")
@@ -107,6 +110,10 @@ class UpdateFinancialEntryModal(ModalScreen):
 
 class FinancialEntriesScreen(Screen):
     SUB_TITLE = "Managing entries"
+    BINDINGS = [
+        ("e", "add_expense", "Add Expense"),
+        ("i", "add_income", "Add Income"),
+    ]
 
     def __init__(self, state: FinancialState, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -123,13 +130,29 @@ class FinancialEntriesScreen(Screen):
         yield DataTable(id="income", cursor_type="row")
 
         with Horizontal(id="actions"):
-            yield Button("Add Expense", variant="primary")
-            yield Button("Add Income Source", variant="primary")
+            yield Button("Add Expense", variant="primary", id="add_expense_btn")
+            yield Button("Add Income Source", variant="primary", id="add_income_btn")
 
-    def _fill_entries_table(
+    def on_mount(self) -> None:
+        expense_table = self.query_one("#expenses", DataTable)
+        income_table = self.query_one("#income", DataTable)
+
+        expense_table.add_columns("Description", "Amount", "Recurrence", "Category")
+        income_table.add_columns("Description", "Amount", "Recurrence", "Category")
+
+        self._sync_tables()
+
+    def _sync_tables(self) -> None:
+        expense_table = self.query_one("#expenses", DataTable)
+        income_table = self.query_one("#income", DataTable)
+
+        self._sync_table_entries(expense_table, self.state.expense_entries)
+        self._sync_table_entries(income_table, self.state.income_entries)
+
+    def _sync_table_entries(
         self, table: DataTable, entries: list[FinancialEntry]
     ) -> None:
-        table.add_columns("Description", "Amount", "Recurrence", "Category")
+        table.clear()
 
         if not entries:
             table.add_row(Text("No entries yet", style="italic"))
@@ -143,25 +166,59 @@ class FinancialEntriesScreen(Screen):
                 entry.category,
             )
 
-    def on_mount(self) -> None:
-        self._fill_entries_table(
-            self.query_one("#expenses", DataTable),
-            self.state.expense_entries,
-        )
-        self._fill_entries_table(
-            self.query_one("#income", DataTable),
-            self.state.income_entries,
-        )
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "add_expense_btn":
+            self.action_add_expense()
+        elif event.button.id == "add_income_btn":
+            self.action_add_income()
 
     @work
     @on(DataTable.RowSelected, "#expenses")
-    async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        # TODO: check if there is a surer way of mapping the row to the entry
+    async def on_expense_row_selected(self, event: DataTable.RowSelected) -> None:
         entry = self.state.expense_entries[event.cursor_row]
-        result = await self.app.push_screen_wait(UpdateFinancialEntryModal(entry))
+        new_entry = await self.app.push_screen_wait(
+            UpdateFinancialEntryModal(entry, "Update Expense")
+        )
+        if new_entry:
+            self.state.expense_entries[event.cursor_row] = new_entry
+            self._sync_tables()
+            self.notify(
+                f"Updated expense entry {new_entry.description}", title="Entry updated"
+            )
+
+    @work
+    @on(DataTable.RowSelected, "#income")
+    async def on_income_row_selected(self, event: DataTable.RowSelected) -> None:
+        entry = self.state.expense_entries[event.cursor_row]
+        new_entry = await self.app.push_screen_wait(
+            UpdateFinancialEntryModal(entry, "Update Income Entry")
+        )
+        if new_entry:
+            self.state.expense_entries[event.cursor_row] = new_entry
+            self._sync_tables()
+            self.notify(
+                f"Updated expense entry {new_entry.description}", title="Entry updated"
+            )
+
+    async def _run_add_modal_entry(self, entry_type: EntryType) -> None:
+        modal_title = "Add Expense" if entry_type == EntryType.EXPENSE else "Add Income"
+        screen = UpdateFinancialEntryModal(FinancialEntry(type=entry_type), modal_title)
+        result = await self.app.push_screen_wait(screen)
         if result:
-            # TODO: update the entry in the state and refresh the table
-            self.notify(f"Updated entry {result.description}", title="Entry updated")
+            self.state.add_entry(result)
+            self._sync_tables()
+            if entry_type == EntryType.EXPENSE:
+                self.notify(f"Added expense {result.description}", title="Expense added")
+            else:
+                self.notify(f"Added income {result.description}", title="Income added")
+
+    @work
+    async def action_add_expense(self) -> None:
+        await self._run_add_modal_entry(EntryType.EXPENSE)
+
+    @work
+    async def action_add_income(self) -> None:
+        await self._run_add_modal_entry(EntryType.INCOME)
 
 
 class BudgetApp(App):
