@@ -111,8 +111,8 @@ class UpdateFinancialEntryModal(ModalScreen):
 class FinancialEntriesScreen(Screen):
     SUB_TITLE = "Managing entries"
     BINDINGS = [
-        ("e", "add_expense", "Add Expense"),
-        ("i", "add_income", "Add Income"),
+        ("insert", "add_entry", "Add Entry"),
+        ("escape", "back", "Back"),
         ("q", "back", "Back"),
     ]
 
@@ -132,10 +132,6 @@ class FinancialEntriesScreen(Screen):
 
         yield Label("Income sources", id="income_label")
         yield DataTable(id="income", cursor_type="row")
-
-        with Horizontal(id="actions"):
-            yield Button("Add Expense", variant="primary", id="add_expense_btn")
-            yield Button("Add Income Source", variant="primary", id="add_income_btn")
 
     def on_mount(self) -> None:
         expense_table = self.query_one("#expenses", DataTable)
@@ -170,11 +166,12 @@ class FinancialEntriesScreen(Screen):
                 entry.category,
             )
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "add_expense_btn":
-            self.action_add_expense()
-        elif event.button.id == "add_income_btn":
-            self.action_add_income()
+    @work
+    async def action_add_entry(self) -> None:
+        if self.focused is None or self.focused.id not in ("expenses", "income"):
+            return
+        entry_type = EntryType.EXPENSE if self.focused.id == "expenses" else EntryType.INCOME
+        await self._run_add_modal_entry(entry_type)
 
     @work
     @on(DataTable.RowSelected, "#expenses")
@@ -215,14 +212,6 @@ class FinancialEntriesScreen(Screen):
                 self.notify(f"Added expense {result.description}", title="Expense added")
             else:
                 self.notify(f"Added income {result.description}", title="Income added")
-
-    @work
-    async def action_add_expense(self) -> None:
-        await self._run_add_modal_entry(EntryType.EXPENSE)
-
-    @work
-    async def action_add_income(self) -> None:
-        await self._run_add_modal_entry(EntryType.INCOME)
 
 
 class MainScreen(Screen):

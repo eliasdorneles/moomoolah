@@ -1,14 +1,14 @@
 #expenses_label {
-  color: $warning;
-  border: tall yellow;
+  color: $warning-darken-3;
+  border: tall $warning-darken-3;
   width: 100%;
   text-align: center;
 }
 
 #income_label {
-  color: $success;
+  color: $success-darken-3;
   margin-top: 1;
-  border: tall green;
+  border: tall $success-darken-3;
   width: 100%;
   text-align: center;
 }
@@ -41,6 +41,14 @@ Label.modal-title {
   background: $warning;
   padding-left: 2;
   width: 60;
+}
+
+DataTable {
+    border: transparent;
+}
+
+DataTable:focus {
+    border: $warning-lighten-2;
 }
 
 /* here we make the label the same size as input controls */
