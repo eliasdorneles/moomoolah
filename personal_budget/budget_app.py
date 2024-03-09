@@ -113,11 +113,15 @@ class FinancialEntriesScreen(Screen):
     BINDINGS = [
         ("e", "add_expense", "Add Expense"),
         ("i", "add_income", "Add Income"),
+        ("q", "back", "Back"),
     ]
 
     def __init__(self, state: FinancialState, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.state = state
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -221,15 +225,39 @@ class FinancialEntriesScreen(Screen):
         await self._run_add_modal_entry(EntryType.INCOME)
 
 
+class MainScreen(Screen):
+    def __init__(self, state: FinancialState, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.state = state
+
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("ctrl+s", "save_state", "Save"),
+        ("m", "manage_entries", "Manage entries"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        # TODO: if state has no entries, invite user to create a new one
+        # TODO: if state has entrie, display the forecast for the next months,
+        #       with option to manage entries
+        yield Header()
+        yield Label("Welcome to the Personal Budget Planner")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        pass
+
+    def action_manage_entries(self) -> None:
+        self.app.push_screen(FinancialEntriesScreen(self.state))
+
+
 class BudgetApp(App):
     TITLE = "Personal Budget Planner"
     CSS_PATH = "style.css"
 
     BINDINGS = [
-        ("q", "save_and_quit", "Save and quit"),
-        ("Q", "save_and_quit", "Save and quit"),
+        ("q", "quit", "Quit"),
         ("ctrl+s", "save_state", "Save"),
-        ("ctrl+S", "save_state", "Save"),
     ]
 
     def __init__(self, state_file, *args, **kwargs):
@@ -250,13 +278,11 @@ class BudgetApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
+        yield Label("Loading...")
         yield Footer()
 
     def on_mount(self) -> None:
-        # TODO: if state has no entries, invite user to create a new one
-        # TODO: if state has entrie, display the forecast for the next months,
-        #       with option to manage entries
-        self.push_screen(FinancialEntriesScreen(self.state))
+        self.push_screen(MainScreen(self.state))
 
     def action_save_state(self) -> None:
         # TODO: ask user where to save, if no state file was given
