@@ -1,4 +1,13 @@
-ManageEntriesScreen DataTable {
+.forecast-title {
+  color: $primary-lighten-3;
+  border: tall $primary-lighten-2;
+  background: $primary-darken-3;
+  text-style: bold;
+  width: 100%;
+  text-align: center;
+}
+
+DataTable {
     margin-top: 1;
 }
 

@@ -22,11 +22,9 @@ def test_financial_state__get_forecast_balance__simple_income():
     # when:
     forecast = state.get_monthly_forecast(date(2024, 1, 1))
     # then:
-    assert forecast.get_balance() == {
-        "total_income": Decimal("1000"),
-        "total_expenses": Decimal("0"),
-        "balance": Decimal("1000"),
-    }
+    assert forecast.total_income == Decimal("1000")
+    assert forecast.total_expenses == Decimal("0")
+    assert forecast.balance == Decimal("1000")
 
 
 def test_financial_state__get_forecast_balance__simple_income_and_expense():
@@ -58,19 +56,15 @@ def test_financial_state__get_forecast_balance__simple_income_and_expense():
     # when:
     forecast = state.get_monthly_forecast(date(2024, 1, 1))
     # then:
-    assert forecast.get_balance() == {
-        "total_income": Decimal("1000"),
-        "total_expenses": Decimal("500"),
-        "balance": Decimal("500"),
-    }
+    assert forecast.total_income == Decimal("1000")
+    assert forecast.total_expenses == Decimal("500")
+    assert forecast.balance == Decimal("500")
     # when:
     forecast = state.get_monthly_forecast(date(2024, 2, 10))
     # then:
-    assert forecast.get_balance() == {
-        "total_income": Decimal("1000"),
-        "total_expenses": Decimal("500"),
-        "balance": Decimal("500"),
-    }
+    assert forecast.total_income == Decimal("1000")
+    assert forecast.total_expenses == Decimal("500")
+    assert forecast.balance == Decimal("500")
 
 
 def test_financial_state__get_forecast_balance__income_and_complex_expense():
@@ -129,28 +123,30 @@ def test_financial_state__get_forecast_balance__income_and_complex_expense():
     # when:
     forecast1 = state.get_monthly_forecast(date(2024, 1, 1))
     # then:
-    assert forecast1.get_balance() == {
-        "total_income": Decimal("1000"),
-        "total_expenses": Decimal("600"),
-        "balance": Decimal("400"),
-    }
+    assert forecast1.total_income == Decimal("1000")
+    assert forecast1.total_expenses == Decimal("600")
+    assert forecast1.balance == Decimal("400")
     # and when:
     forecast2 = state.get_monthly_forecast(date(2024, 2, 10))
     # then:
-    assert forecast2.get_balance() == {
-        "total_income": Decimal("1000"),
-        "total_expenses": Decimal("680"),
-        "balance": Decimal("320"),
-    }
+    assert forecast2.total_income == Decimal("1000")
+    assert forecast2.total_expenses == Decimal("680")
+    assert forecast2.balance == Decimal("320")
     # and when:
     forecast3 = state.get_monthly_forecast(date(2024, 3, 10))
     # then:
-    assert forecast3.get_balance() == forecast1.get_balance()
+    assert forecast3.total_income == forecast1.total_income
+    assert forecast3.total_expenses == forecast1.total_expenses
+    assert forecast3.balance == forecast1.balance
     # and when:
     forecast4 = state.get_monthly_forecast(date(2024, 3, 10))
     # then:
-    assert forecast4.get_balance() == forecast1.get_balance()
+    assert forecast4.total_income == forecast1.total_income
+    assert forecast4.total_expenses == forecast1.total_expenses
+    assert forecast4.balance == forecast1.balance
     # and when:
-    forecast4 = state.get_monthly_forecast(date(2024, 5, 10))
+    forecast5 = state.get_monthly_forecast(date(2024, 5, 10))
     # then:
-    assert forecast4.get_balance() == forecast2.get_balance()
+    assert forecast5.total_income == forecast2.total_income
+    assert forecast5.total_expenses == forecast2.total_expenses
+    assert forecast5.balance == forecast2.balance

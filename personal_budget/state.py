@@ -77,14 +77,17 @@ class MonthlyForecast(BaseModel):
     expenses_by_category: dict[str, Decimal]
     income_by_category: dict[str, Decimal]
 
-    def get_balance(self) -> dict[str, Decimal]:
-        income = Decimal(sum(self.income_by_category.values()))
-        expenses = Decimal(sum(self.expenses_by_category.values()))
-        return {
-            "total_income": income,
-            "total_expenses": expenses,
-            "balance": income - expenses,
-        }
+    @property
+    def total_income(self) -> Decimal:
+        return Decimal(sum(self.income_by_category.values()))
+
+    @property
+    def total_expenses(self) -> Decimal:
+        return Decimal(sum(self.expenses_by_category.values()))
+
+    @property
+    def balance(self) -> Decimal:
+        return self.total_income - self.total_expenses
 
     @classmethod
     def from_financial_entries(
@@ -139,13 +142,13 @@ class FinancialState(BaseModel):
             month, self.income_entries, self.expense_entries
         )
 
-    def get_forecast_for_next_n_months(self, n: int) -> dict[str, MonthlyForecast]:
+    def get_forecast_for_next_n_months(self, n: int) -> dict[date, MonthlyForecast]:
         assert n > 0, "n must be a positive integer"
-        forecast: dict[str, MonthlyForecast] = {}
+        forecast: dict[date, MonthlyForecast] = {}
         today = date.today()
         for i in range(n):
             month = today + relativedelta(months=i)
-            forecast[f"{month.year}-{month.month}"] = self.get_monthly_forecast(month)
+            forecast[month] = self.get_monthly_forecast(month)
         return forecast
 
     @classmethod

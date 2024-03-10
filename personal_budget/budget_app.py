@@ -12,7 +12,7 @@ from textual.widgets import (Button, DataTable, Footer, Header, Input, Label,
                              RadioButton, RadioSet)
 
 from personal_budget.state import (EntryType, FinancialEntry, FinancialState,
-                                   Recurrence, RecurrenceType)
+                                   MonthlyForecast, Recurrence, RecurrenceType)
 from personal_budget.widgets import ConfirmationModal
 
 
@@ -96,7 +96,7 @@ class UpdateEntryModal(ModalScreen):
 class ManageEntriesScreen(Screen):
     BINDINGS = [
         ("escape", "back", "Back"),
-        ("q", "back", "Back"),
+        ("backspace", "back", "Back"),
         ("insert", "add_entry", "Add Entry"),
         ("delete", "delete_entry", "Delete Entry"),
     ]
@@ -199,31 +199,47 @@ class MainScreen(Screen):
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("ctrl+s", "save_state", "Save"),
-        # ("m", "manage_entries", "Manage entries"),
         ("e", "manage_expenses", "Manage Expenses"),
         ("i", "manage_income", "Manage Income"),
     ]
 
+    @work
+    async def action_manage_expenses(self) -> None:
+        screen = ManageEntriesScreen(EntryType.EXPENSE, self.state.expense_entries)
+        await self.app.push_screen_wait(screen)
+        self._sync_table()
+
+    @work
+    async def action_manage_income(self) -> None:
+        screen = ManageEntriesScreen(EntryType.INCOME, self.state.income_entries)
+        await self.app.push_screen_wait(screen)
+        self._sync_table()
+
     def compose(self) -> ComposeResult:
         # TODO: if state has no entries, invite user to create a new one
-        # TODO: if state has entrie, display the forecast for the next months,
+        # TODO: if state has entries, display the forecast for the next months,
         #       with option to manage entries
         yield Header()
-        yield Label("Welcome to the Personal Budget Planner")
+        yield Label("FORECAST FOR NEXT 12 MONTHS", classes="forecast-title")
+        yield DataTable(id="forecast_table", cursor_type="none")
         yield Footer()
 
     def on_mount(self) -> None:
-        pass
+        table = self.query_one("#forecast_table", DataTable)
+        table.add_columns("Month", "Expenses", "Income", "Balance")
+        self._sync_table()
 
-    def action_manage_expenses(self) -> None:
-        self.app.push_screen(
-            ManageEntriesScreen(EntryType.EXPENSE, self.state.expense_entries)
-        )
-
-    def action_manage_income(self) -> None:
-        self.app.push_screen(
-            ManageEntriesScreen(EntryType.INCOME, self.state.income_entries)
-        )
+    def _sync_table(self) -> None:
+        table = self.query_one("#forecast_table", DataTable)
+        table.clear()
+        for month, forecast in self.state.get_forecast_for_next_n_months(12).items():
+            balance_style = "red bold" if forecast.balance < Decimal("0") else "blue bold"
+            table.add_row(
+                month.strftime("%B %Y"),
+                Text(f"€{forecast.total_expenses}", style="bold", justify="right"),
+                Text(f"€{forecast.total_income}", style="bold", justify="right"),
+                Text(f"€{forecast.balance}", style=balance_style, justify="right"),
+            )
 
 
 class BudgetApp(App):
@@ -231,7 +247,7 @@ class BudgetApp(App):
     CSS_PATH = "style.css"
 
     BINDINGS = [
-        ("q", "quit", "Quit"),
+        ("ctrl+q", "quit", "Quit"),
         ("ctrl+s", "save_state", "Save"),
     ]
 
