@@ -34,6 +34,13 @@ class Recurrence(BaseModel):
                 and self.start_date.year == month_date.year
             )
         elif self.type == RecurrenceType.MONTHLY:
+            if self.end_date and month_date > self.end_date:
+                return False
+            if (
+                month_date.year <= self.start_date.year
+                and month_date.month < self.start_date.month
+            ):
+                return False
             return month_date.month % self.every == self.start_date.month % self.every
         elif self.type == RecurrenceType.ANNUAL:
             return self.start_date.month == month_date.month

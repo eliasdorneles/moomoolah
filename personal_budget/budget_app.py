@@ -48,17 +48,27 @@ class UpdateEntryModal(ModalScreen):
                         value=rt == self.entry.recurrence.type,
                     )
 
-            yield Label("Date:")
-            yield Input(value=str(self.entry.recurrence.start_date), id="entry_date")
+            yield Label("Start date:")
+            yield Input(value=str(self.entry.recurrence.start_date), id="entry_start_date")
 
             # TODO: only show this if recurrence is MONTHLY
             yield Label("Every X months?")
             yield Input(value=str(self.entry.recurrence.every), id="entry_every")
 
+            yield Label("End Date:")
+            end_date_value = (
+                str(self.entry.recurrence.end_date)
+                if self.entry.recurrence.end_date
+                else ""
+            )
+            yield Input(value=end_date_value, id="end_date")
+
             yield Button("Save", id="entry_save", variant="primary")
             yield Button("Cancel", id="entry_cancel")
 
     def _get_values(self):
+        def get_date_or_none(value):
+            return date.fromisoformat(value) if value else None
         return {
             "description": self.query_one("#entry_description", Input).value,
             "amount": Decimal(self.query_one("#entry_amount", Input).value),
@@ -68,8 +78,9 @@ class UpdateEntryModal(ModalScreen):
                     self.query_one("#entry_recurrence", RadioSet).pressed_button.label
                 ).upper()
             ],
-            "start_date": date.fromisoformat(self.query_one("#entry_date", Input).value),
+            "start_date": date.fromisoformat(self.query_one("#entry_start_date", Input).value),
             "every": int(self.query_one("#entry_every", Input).value),
+            "end_date": get_date_or_none(self.query_one("#end_date", Input).value),
         }
 
     @on(Button.Pressed, "#entry_save")
