@@ -2,36 +2,21 @@ import argparse
 import os
 from datetime import date
 from decimal import Decimal
+
 from rich.text import Text
-from textual.app import App, ComposeResult
 from textual import on, work
-from textual.reactive import reactive
-from textual.containers import Container
-from textual.containers import Horizontal
+from textual.app import App, ComposeResult
 from textual.containers import Grid
-from textual.message import Message
-from textual.screen import ModalScreen
-from textual.screen import Screen
-from textual.widget import Widget
-from textual.widgets import Input
-from textual.widgets import Footer
-from textual.widgets import Header
-from textual.widgets import DataTable
-from textual.widgets import Button
-from textual.widgets import Label
-from textual.widgets import RadioButton
-from textual.widgets import RadioSet
-from textual.widgets import Select
-from personal_budget.state import (
-    EntryType,
-    FinancialEntry,
-    FinancialState,
-    Recurrence,
-    RecurrenceType,
-)
+from textual.screen import ModalScreen, Screen
+from textual.widgets import (Button, DataTable, Footer, Header, Input, Label,
+                             RadioButton, RadioSet)
+
+from personal_budget.state import (EntryType, FinancialEntry, FinancialState,
+                                   Recurrence, RecurrenceType)
+from personal_budget.widgets import ConfirmationModal
 
 
-class UpdateFinancialEntryModal(ModalScreen):
+class UpdateEntryModal(ModalScreen):
     SUB_TITLE = "Update entry"
     BINDINGS = [("escape", "app.pop_screen", "Cancel")]
 
@@ -108,17 +93,23 @@ class UpdateFinancialEntryModal(ModalScreen):
         self.dismiss(None)
 
 
-class FinancialEntriesScreen(Screen):
-    SUB_TITLE = "Managing entries"
+class ManageEntriesScreen(Screen):
     BINDINGS = [
-        ("insert", "add_entry", "Add Entry"),
         ("escape", "back", "Back"),
         ("q", "back", "Back"),
+        ("insert", "add_entry", "Add Entry"),
+        ("delete", "delete_entry", "Delete Entry"),
     ]
 
-    def __init__(self, state: FinancialState, *args, **kwargs):
+    def __init__(
+        self, entry_type: EntryType, entries: list[FinancialEntry], *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
-        self.state = state
+        self.sub_title: str = (
+            "Managing Expenses" if entry_type == EntryType.EXPENSE else "Managing Income"
+        )
+        self.entry_type = entry_type
+        self.entries = entries
 
     def action_back(self) -> None:
         self.app.pop_screen()
@@ -127,27 +118,17 @@ class FinancialEntriesScreen(Screen):
         yield Header()
         yield Footer()
 
-        yield Label("Expenses", id="expenses_label")
-        yield DataTable(id="expenses", cursor_type="row")
-
-        yield Label("Income sources", id="income_label")
-        yield DataTable(id="income", cursor_type="row")
+        yield Label(self.sub_title, classes=f"entries-label-{self.entry_type}")
+        yield DataTable(id="entries_table", cursor_type="row")
 
     def on_mount(self) -> None:
-        expense_table = self.query_one("#expenses", DataTable)
-        income_table = self.query_one("#income", DataTable)
+        table = self.query_one("#entries_table", DataTable)
+        table.add_columns("Description", "Amount", "Recurrence", "Category")
+        self._sync_table()
 
-        expense_table.add_columns("Description", "Amount", "Recurrence", "Category")
-        income_table.add_columns("Description", "Amount", "Recurrence", "Category")
-
-        self._sync_tables()
-
-    def _sync_tables(self) -> None:
-        expense_table = self.query_one("#expenses", DataTable)
-        income_table = self.query_one("#income", DataTable)
-
-        self._sync_table_entries(expense_table, self.state.expense_entries)
-        self._sync_table_entries(income_table, self.state.income_entries)
+    def _sync_table(self) -> None:
+        table = self.query_one("#entries_table", DataTable)
+        self._sync_table_entries(table, self.entries)
 
     def _sync_table_entries(
         self, table: DataTable, entries: list[FinancialEntry]
@@ -168,50 +149,46 @@ class FinancialEntriesScreen(Screen):
 
     @work
     async def action_add_entry(self) -> None:
-        if self.focused is None or self.focused.id not in ("expenses", "income"):
-            return
-        entry_type = EntryType.EXPENSE if self.focused.id == "expenses" else EntryType.INCOME
-        await self._run_add_modal_entry(entry_type)
-
-    @work
-    @on(DataTable.RowSelected, "#expenses")
-    async def on_expense_row_selected(self, event: DataTable.RowSelected) -> None:
-        entry = self.state.expense_entries[event.cursor_row]
-        new_entry = await self.app.push_screen_wait(
-            UpdateFinancialEntryModal(entry, "Update Expense")
+        modal_title = (
+            "Add Expense" if self.entry_type == EntryType.EXPENSE else "Add Income"
         )
-        if new_entry:
-            self.state.expense_entries[event.cursor_row] = new_entry
-            self._sync_tables()
-            self.notify(
-                f"Updated expense entry {new_entry.description}", title="Entry updated"
-            )
-
-    @work
-    @on(DataTable.RowSelected, "#income")
-    async def on_income_row_selected(self, event: DataTable.RowSelected) -> None:
-        entry = self.state.expense_entries[event.cursor_row]
-        new_entry = await self.app.push_screen_wait(
-            UpdateFinancialEntryModal(entry, "Update Income Entry")
-        )
-        if new_entry:
-            self.state.expense_entries[event.cursor_row] = new_entry
-            self._sync_tables()
-            self.notify(
-                f"Updated expense entry {new_entry.description}", title="Entry updated"
-            )
-
-    async def _run_add_modal_entry(self, entry_type: EntryType) -> None:
-        modal_title = "Add Expense" if entry_type == EntryType.EXPENSE else "Add Income"
-        screen = UpdateFinancialEntryModal(FinancialEntry(type=entry_type), modal_title)
+        screen = UpdateEntryModal(FinancialEntry(type=self.entry_type), modal_title)
         result = await self.app.push_screen_wait(screen)
         if result:
-            self.state.add_entry(result)
-            self._sync_tables()
-            if entry_type == EntryType.EXPENSE:
+            self.entries.append(result)
+            self._sync_table()
+            if self.entry_type == EntryType.EXPENSE:
                 self.notify(f"Added expense {result.description}", title="Expense added")
             else:
                 self.notify(f"Added income {result.description}", title="Income added")
+
+    @work
+    async def action_delete_entry(self) -> None:
+        if not self.entries:
+            return
+
+        table = self.query_one("#entries_table", DataTable)
+        entry = self.entries[table.cursor_row]
+        screen = ConfirmationModal(
+            f"Are you sure you want to delete '{entry.description}'?"
+        )
+        result = await self.app.push_screen_wait(screen)
+        if result:
+            self.entries.pop(table.cursor_row)
+            self._sync_table()
+            self.notify("Entry deleted", title="Entry deleted")
+
+    @work
+    @on(DataTable.RowSelected, "#entries_table")
+    async def on_row_selected(self, event: DataTable.RowSelected) -> None:
+        entry = self.entries[event.cursor_row]
+        new_entry = await self.app.push_screen_wait(
+            UpdateEntryModal(entry, f"Update {self.entry_type} Entry")
+        )
+        if new_entry:
+            self.entries[event.cursor_row] = new_entry
+            self._sync_table()
+            self.notify(f"Updated entry '{new_entry.description}'", title="Entry updated")
 
 
 class MainScreen(Screen):
@@ -222,7 +199,9 @@ class MainScreen(Screen):
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("ctrl+s", "save_state", "Save"),
-        ("m", "manage_entries", "Manage entries"),
+        # ("m", "manage_entries", "Manage entries"),
+        ("e", "manage_expenses", "Manage Expenses"),
+        ("i", "manage_income", "Manage Income"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -236,8 +215,15 @@ class MainScreen(Screen):
     def on_mount(self) -> None:
         pass
 
-    def action_manage_entries(self) -> None:
-        self.app.push_screen(FinancialEntriesScreen(self.state))
+    def action_manage_expenses(self) -> None:
+        self.app.push_screen(
+            ManageEntriesScreen(EntryType.EXPENSE, self.state.expense_entries)
+        )
+
+    def action_manage_income(self) -> None:
+        self.app.push_screen(
+            ManageEntriesScreen(EntryType.INCOME, self.state.income_entries)
+        )
 
 
 class BudgetApp(App):

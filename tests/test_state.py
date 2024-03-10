@@ -1,12 +1,8 @@
 from datetime import date
 from decimal import Decimal
-from personal_budget.state import (
-    EntryType,
-    FinancialEntry,
-    FinancialState,
-    Recurrence,
-    RecurrenceType,
-)
+
+from personal_budget.state import (EntryType, FinancialEntry, FinancialState,
+                                   Recurrence, RecurrenceType)
 
 
 def test_financial_state__get_forecast_balance__simple_income():

@@ -1,11 +1,15 @@
-#expenses_label {
+ManageEntriesScreen DataTable {
+    margin-top: 1;
+}
+
+.entries-label-EXPENSE {
   color: $warning-darken-3;
   border: tall $warning-darken-3;
   width: 100%;
   text-align: center;
 }
 
-#income_label {
+.entries-label-INCOME {
   color: $success-darken-3;
   margin-top: 1;
   border: tall $success-darken-3;
@@ -13,21 +17,11 @@
   text-align: center;
 }
 
-#actions {
-  margin-top: 2;
-}
-
-#actions Button {
-  margin-left: 3;
-}
-
-UpdateFinancialEntryModal {
+UpdateEntryModal {
   align: center middle;
 }
 
-/* TODO: align the labels with inputs */
-
-UpdateFinancialEntryModal Grid {
+UpdateEntryModal Grid {
   grid-size: 2;
   grid-columns: 1fr 2fr;
   border: outer $warning;
@@ -43,22 +37,14 @@ Label.modal-title {
   width: 60;
 }
 
-DataTable {
-    border: transparent;
-}
-
-DataTable:focus {
-    border: $warning-lighten-2;
-}
-
 /* here we make the label the same size as input controls */
-UpdateFinancialEntryModal Grid Label {
+UpdateEntryModal Grid Label {
   height: 3;
   content-align: right middle;
   padding: 0 1;
   width: 100%;
 }
 
-UpdateFinancialEntryModal RadioSet {
+UpdateEntryModal RadioSet {
   width: 100%;
 }

@@ -1,8 +1,9 @@
 import enum
 from collections import defaultdict
 from datetime import date
-from dateutil.relativedelta import relativedelta
 from decimal import Decimal
+
+from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, Field
 
 
@@ -65,7 +66,7 @@ class FinancialEntry(BaseModel):
             type=RecurrenceType.MONTHLY, start_date=date.today()
         )
     )
-    category: str = ""
+    category: str = "Essentials"
 
     def will_occur_on_month(self, month: date) -> bool:
         return self.recurrence.will_occur_on_month(month)
@@ -111,21 +112,6 @@ class FinancialState(BaseModel):
         EntryType.INCOME: [],
         EntryType.EXPENSE: [],
     }
-    available_categories_per_type: dict[EntryType, set[str]] = {
-        EntryType.INCOME: set(),
-        EntryType.EXPENSE: set(),
-    }
-
-    @property
-    def income_categories(self) -> set[str]:
-        return self.available_categories_per_type[EntryType.INCOME]
-
-    @property
-    def expense_categories(self) -> set[str]:
-        return self.available_categories_per_type[EntryType.EXPENSE]
-
-    def add_category(self, entry_type: EntryType, category: str):
-        self.available_categories_per_type[entry_type].add(category)
 
     @property
     def income_entries(self) -> list[FinancialEntry]:
@@ -135,8 +121,14 @@ class FinancialState(BaseModel):
     def expense_entries(self) -> list[FinancialEntry]:
         return self.all_entries[EntryType.EXPENSE]
 
+    @property
+    def categories_per_type(self) -> dict[EntryType, set[str]]:
+        return {
+            EntryType.INCOME: {entry.category for entry in self.income_entries},
+            EntryType.EXPENSE: {entry.category for entry in self.expense_entries},
+        }
+
     def add_entry(self, entry: FinancialEntry):
-        self.available_categories_per_type[entry.type].add(entry.category)
         self.all_entries[entry.type].append(entry)
 
     def remove_entry(self, entry: FinancialEntry):

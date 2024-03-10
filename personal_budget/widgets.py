@@ -1,36 +1,46 @@
-from textual.widgets import RadioButton
-from textual.widgets import RadioSet
-from textual.message import Message
-from textual.widget import Widget
+from textual import on
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal
+from textual.screen import ModalScreen
+from textual.widgets import Button, Label
 
 
-class Radio(Widget):
-    class ValueChanged(Message):
-        """The value of the radio set has changed."""
+class ConfirmationModal(ModalScreen[bool]):
+    CSS = """
+    ConfirmationModal {
+      align: center middle;
+    }
 
-        def __init__(self, value):
-            self.value = value
-            super().__init__()
+    ConfirmationModal Container {
+      width: 60;
+      height: 10;
+      outline: solid $warning;
+      padding: 2;
+    }
+    ConfirmationModal Horizontal {
+        margin-top: 1;
+        align: center middle;
+    }
+    ConfirmationModal Button {
+        margin-right: 2;
+    }
+    """
 
-    def __init__(
-        self,
-        options: dict[str, str],
-        selected_index: int | None = None,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, question: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.options = options
-        self.selected_index = selected_index
-        self.value = None
-        if selected_index is not None:
-            self.value = list(self.options.keys())[selected_index]
+        self.question = question
 
-    def compose(self):
-        with RadioSet():
-            for index, (_, label) in enumerate(self.options.items()):
-                yield RadioButton(label, value=index == self.selected_index)
+    def compose(self) -> ComposeResult:
+        with Container():
+            yield Label(self.question)
+            with Horizontal():
+                yield Button("Yes", id="confirmation_yes", variant="primary")
+                yield Button("No", id="confirmation_no")
 
-    def on_radio_set_changed(self, event: RadioSet.Changed):
-        self.value = list(self.options.keys())[event.radio_set.pressed_index]
-        self.post_message(self.ValueChanged(self.value))
+    @on(Button.Pressed, "#confirmation_yes")
+    def on_yes(self, _) -> None:
+        self.dismiss(True)
+
+    @on(Button.Pressed, "#confirmation_no")
+    def on_no(self, _) -> None:
+        self.dismiss(False)
