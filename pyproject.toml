@@ -16,6 +16,7 @@ python-dateutil = "^2.9.0.post0"
 pytest = "^8.0.2"
 textual-dev = "^1.5.1"
 ipython = "^8.22.1"
+isort = "^5.13.2"
 
 [build-system]
 requires = ["poetry-core"]
