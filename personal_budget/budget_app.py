@@ -95,8 +95,8 @@ class UpdateEntryModal(ModalScreen):
 
 class ManageEntriesScreen(Screen):
     BINDINGS = [
-        ("escape", "back", "Back"),
         ("backspace", "back", "Back"),
+        ("escape", "back", "Back"),
         ("insert", "add_entry", "Add Entry"),
         ("delete", "delete_entry", "Delete Entry"),
     ]
@@ -197,8 +197,6 @@ class MainScreen(Screen):
         self.state = state
 
     BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("ctrl+s", "save_state", "Save"),
         ("e", "manage_expenses", "Manage Expenses"),
         ("i", "manage_income", "Manage Income"),
     ]

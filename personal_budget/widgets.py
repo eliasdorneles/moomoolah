@@ -6,6 +6,7 @@ from textual.widgets import Button, Label
 
 
 class ConfirmationModal(ModalScreen[bool]):
+    BINDINGS = [("escape", "app.pop_screen", "Cancel")]
     CSS = """
     ConfirmationModal {
       align: center middle;
