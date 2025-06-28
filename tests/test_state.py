@@ -1,8 +1,13 @@
 from datetime import date
 from decimal import Decimal
 
-from personal_budget.state import (EntryType, FinancialEntry, FinancialState,
-                                   Recurrence, RecurrenceType)
+from personal_budget.state import (
+    EntryType,
+    FinancialEntry,
+    FinancialState,
+    Recurrence,
+    RecurrenceType,
+)
 
 
 def test_financial_state__get_forecast_balance__simple_income():
@@ -150,3 +155,79 @@ def test_financial_state__get_forecast_balance__income_and_complex_expense():
     assert forecast5.total_income == forecast2.total_income
     assert forecast5.total_expenses == forecast2.total_expenses
     assert forecast5.balance == forecast2.balance
+
+
+def test_financial_state__get_forecast_for_previous_n_months():
+    state = FinancialState()
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("1000"),
+            description="Salary",
+            type=EntryType.INCOME,
+            category="Income",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2022, 1, 1),
+            ),
+        )
+    )
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("600"),
+            description="Rent",
+            type=EntryType.EXPENSE,
+            category="Essentials",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2022, 1, 5),
+            ),
+        )
+    )
+
+    # when:
+    forecast = state.get_forecast_for_previous_n_months(3)
+
+    # then:
+    assert len(forecast) == 3
+    for month_forecast in forecast.values():
+        assert month_forecast.total_income == Decimal("1000")
+        assert month_forecast.total_expenses == Decimal("600")
+        assert month_forecast.balance == Decimal("400")
+
+
+def test_financial_state__get_forecast_for_next_n_months():
+    state = FinancialState()
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("2000"),
+            description="Salary",
+            type=EntryType.INCOME,
+            category="Income",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2022, 1, 1),
+            ),
+        )
+    )
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("800"),
+            description="Rent",
+            type=EntryType.EXPENSE,
+            category="Essentials",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2022, 1, 5),
+            ),
+        )
+    )
+
+    # when:
+    forecast = state.get_forecast_for_next_n_months(6)
+
+    # then:
+    assert len(forecast) == 6
+    for month_forecast in forecast.values():
+        assert month_forecast.total_income == Decimal("2000")
+        assert month_forecast.total_expenses == Decimal("800")
+        assert month_forecast.balance == Decimal("1200")

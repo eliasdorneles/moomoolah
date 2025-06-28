@@ -5,10 +5,10 @@
 - [X] split "Manage entries" into separate Expenses and Income screens
 - [X] implement delete entry
 - [X] display next 12 months forecast on main screen
+- [x] display previous 3 months at the bottom
 
 ## Planned Features
 
-- [ ] display previous 6 months at the bottom
 - [ ] refresh forecast when getting back from manage expenses/income to main screen
 - [ ] when user press Insert in main screen, display modal if wants to add
       expense or income

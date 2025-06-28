@@ -7,6 +7,16 @@
   text-align: center;
 }
 
+.history-title {
+  color: $primary-background-lighten-3;
+  border: tall $primary-background-lighten-2;
+  background: $primary-background-darken-3;
+  text-style: bold;
+  width: 100%;
+  text-align: center;
+  margin-top: 2;
+}
+
 DataTable {
     margin-top: 1;
 }

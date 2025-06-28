@@ -103,7 +103,9 @@ class MonthlyForecast(BaseModel):
         income_entries: list[FinancialEntry],
         expenses_entries: list[FinancialEntry],
     ) -> "MonthlyForecast":
-        def _build_forecast_by_category_for_month(entries: list[FinancialEntry]) -> dict:
+        def _build_forecast_by_category_for_month(
+            entries: list[FinancialEntry],
+        ) -> dict:
             forecast = defaultdict(Decimal)
             for entry in entries:
                 if entry.will_occur_on_month(month):
@@ -112,7 +114,9 @@ class MonthlyForecast(BaseModel):
 
         return cls(
             month=month,
-            expenses_by_category=_build_forecast_by_category_for_month(expenses_entries),
+            expenses_by_category=_build_forecast_by_category_for_month(
+                expenses_entries
+            ),
             income_by_category=_build_forecast_by_category_for_month(income_entries),
         )
 
@@ -155,6 +159,15 @@ class FinancialState(BaseModel):
         today = date.today()
         for i in range(n):
             month = today + relativedelta(months=i)
+            forecast[month] = self.get_monthly_forecast(month)
+        return forecast
+
+    def get_forecast_for_previous_n_months(self, n: int) -> dict[date, MonthlyForecast]:
+        assert n > 0, "n must be a positive integer"
+        forecast: dict[date, MonthlyForecast] = {}
+        today = date.today()
+        for i in range(1, n + 1):
+            month = today - relativedelta(months=i)
             forecast[month] = self.get_monthly_forecast(month)
         return forecast
 

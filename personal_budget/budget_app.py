@@ -8,11 +8,24 @@ from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Grid
 from textual.screen import ModalScreen, Screen
-from textual.widgets import (Button, DataTable, Footer, Header, Input, Label,
-                             RadioButton, RadioSet)
+from textual.widgets import (
+    Button,
+    DataTable,
+    Footer,
+    Header,
+    Input,
+    Label,
+    RadioButton,
+    RadioSet,
+)
 
-from personal_budget.state import (EntryType, FinancialEntry, FinancialState,
-                                   MonthlyForecast, Recurrence, RecurrenceType)
+from personal_budget.state import (
+    EntryType,
+    FinancialEntry,
+    FinancialState,
+    Recurrence,
+    RecurrenceType,
+)
 from personal_budget.widgets import ConfirmationModal
 
 
@@ -49,7 +62,9 @@ class UpdateEntryModal(ModalScreen):
                     )
 
             yield Label("Start date:")
-            yield Input(value=str(self.entry.recurrence.start_date), id="entry_start_date")
+            yield Input(
+                value=str(self.entry.recurrence.start_date), id="entry_start_date"
+            )
 
             # TODO: only show this if recurrence is MONTHLY
             yield Label("Every X months?")
@@ -69,6 +84,7 @@ class UpdateEntryModal(ModalScreen):
     def _get_values(self):
         def get_date_or_none(value):
             return date.fromisoformat(value) if value else None
+
         return {
             "description": self.query_one("#entry_description", Input).value,
             "amount": Decimal(self.query_one("#entry_amount", Input).value),
@@ -78,7 +94,9 @@ class UpdateEntryModal(ModalScreen):
                     self.query_one("#entry_recurrence", RadioSet).pressed_button.label
                 ).upper()
             ],
-            "start_date": date.fromisoformat(self.query_one("#entry_start_date", Input).value),
+            "start_date": date.fromisoformat(
+                self.query_one("#entry_start_date", Input).value
+            ),
             "every": int(self.query_one("#entry_every", Input).value),
             "end_date": get_date_or_none(self.query_one("#end_date", Input).value),
         }
@@ -117,7 +135,9 @@ class ManageEntriesScreen(Screen):
     ):
         super().__init__(*args, **kwargs)
         self.sub_title: str = (
-            "Managing Expenses" if entry_type == EntryType.EXPENSE else "Managing Income"
+            "Managing Expenses"
+            if entry_type == EntryType.EXPENSE
+            else "Managing Income"
         )
         self.entry_type = entry_type
         self.entries = entries
@@ -169,7 +189,9 @@ class ManageEntriesScreen(Screen):
             self.entries.append(result)
             self._sync_table()
             if self.entry_type == EntryType.EXPENSE:
-                self.notify(f"Added expense {result.description}", title="Expense added")
+                self.notify(
+                    f"Added expense {result.description}", title="Expense added"
+                )
             else:
                 self.notify(f"Added income {result.description}", title="Income added")
 
@@ -199,7 +221,9 @@ class ManageEntriesScreen(Screen):
         if new_entry:
             self.entries[event.cursor_row] = new_entry
             self._sync_table()
-            self.notify(f"Updated entry '{new_entry.description}'", title="Entry updated")
+            self.notify(
+                f"Updated entry '{new_entry.description}'", title="Entry updated"
+            )
 
 
 class MainScreen(Screen):
@@ -231,19 +255,46 @@ class MainScreen(Screen):
         yield Header()
         yield Label("FORECAST FOR NEXT 12 MONTHS", classes="forecast-title")
         yield DataTable(id="forecast_table", cursor_type="none")
+        yield Label("PREVIOUS 3 MONTHS", classes="history-title")
+        yield DataTable(id="history_table", cursor_type="none")
         yield Footer()
 
     def on_mount(self) -> None:
-        table = self.query_one("#forecast_table", DataTable)
-        table.add_columns("Month", "Expenses", "Income", "Balance")
+        forecast_table = self.query_one("#forecast_table", DataTable)
+        forecast_table.add_columns("Month", "Expenses", "Income", "Balance")
+
+        history_table = self.query_one("#history_table", DataTable)
+        history_table.add_columns("Month", "Expenses", "Income", "Balance")
+
         self._sync_table()
 
     def _sync_table(self) -> None:
-        table = self.query_one("#forecast_table", DataTable)
-        table.clear()
+        # Update forecast table
+        forecast_table = self.query_one("#forecast_table", DataTable)
+        forecast_table.clear()
         for month, forecast in self.state.get_forecast_for_next_n_months(12).items():
-            balance_style = "red bold" if forecast.balance < Decimal("0") else "blue bold"
-            table.add_row(
+            balance_style = (
+                "red bold" if forecast.balance < Decimal("0") else "blue bold"
+            )
+            forecast_table.add_row(
+                month.strftime("%B %Y"),
+                Text(f"€{forecast.total_expenses}", style="bold", justify="right"),
+                Text(f"€{forecast.total_income}", style="bold", justify="right"),
+                Text(f"€{forecast.balance}", style=balance_style, justify="right"),
+            )
+
+        # Update history table
+        history_table = self.query_one("#history_table", DataTable)
+        history_table.clear()
+        # Get history in reverse chronological order (most recent first)
+        history_data = list(self.state.get_forecast_for_previous_n_months(3).items())
+        history_data.reverse()
+
+        for month, forecast in history_data:
+            balance_style = (
+                "red bold" if forecast.balance < Decimal("0") else "blue bold"
+            )
+            history_table.add_row(
                 month.strftime("%B %Y"),
                 Text(f"€{forecast.total_expenses}", style="bold", justify="right"),
                 Text(f"€{forecast.total_income}", style="bold", justify="right"),
