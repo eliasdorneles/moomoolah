@@ -229,6 +229,7 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
         result = await self.app.push_screen_wait(screen)
         if result:
             self.entries.append(result)
+            self.app.mark_unsaved_changes()
             self._sync_table()
             if self.entry_type == EntryType.EXPENSE:
                 self.notify(
@@ -250,6 +251,7 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
         result = await self.app.push_screen_wait(screen)
         if result:
             self.entries.pop(table.cursor_row)
+            self.app.mark_unsaved_changes()
             self._sync_table()
             self.notify("Entry deleted", title="Entry deleted")
 
@@ -266,6 +268,7 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
         )
         if new_entry:
             self.entries[event.cursor_row] = new_entry
+            self.app.mark_unsaved_changes()
             self._sync_table()
             self.notify(
                 f"Updated entry '{new_entry.description}'", title="Entry updated"
@@ -321,6 +324,9 @@ class MainScreen(Screen):
                 self.notify(
                     f"Added income {new_entry.description}", title="Income added"
                 )
+
+            # Mark changes as unsaved
+            self.app.mark_unsaved_changes()
 
             # Refresh the forecast table
             self._sync_table()
@@ -403,6 +409,27 @@ class BudgetApp(App):
             )
 
         self.state_file = state_file
+        self.has_unsaved_changes = False
+
+    def mark_unsaved_changes(self) -> None:
+        """Mark that there are unsaved changes and update the title."""
+        if not self.has_unsaved_changes:
+            self.has_unsaved_changes = True
+            self._update_title()
+
+    def mark_changes_saved(self) -> None:
+        """Mark that changes have been saved and update the title."""
+        if self.has_unsaved_changes:
+            self.has_unsaved_changes = False
+            self._update_title()
+
+    def _update_title(self) -> None:
+        """Update the app title to show unsaved changes indicator."""
+        base_title = "Personal Budget Planner"
+        if self.has_unsaved_changes:
+            self.title = f"{base_title} *"
+        else:
+            self.title = base_title
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -415,9 +442,23 @@ class BudgetApp(App):
     def action_save_state(self) -> None:
         # TODO: ask user where to save, if no state file was given
         self.state.to_json_file(self.state_file)
+        self.mark_changes_saved()
         self.notify(
             f"Written file {os.path.basename(self.state_file)}", title="Saved state"
         )
+
+    @work
+    async def action_quit(self) -> None:
+        """Override quit action to check for unsaved changes."""
+        if self.has_unsaved_changes:
+            screen = ConfirmationModal(
+                "You have unsaved changes. Are you sure you want to quit?"
+            )
+            result = await self.push_screen_wait(screen)
+            if result:
+                self.exit()
+        else:
+            self.exit()
 
 
 if __name__ == "__main__":

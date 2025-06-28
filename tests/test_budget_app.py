@@ -625,3 +625,270 @@ class TestUpdateEntryModal:
 
             category_input = app.screen.query_one("#entry_category")
             assert category_input.value == "Test"
+
+
+class TestUnsavedChanges:
+    """Test the unsaved changes tracking functionality."""
+
+    async def test_app_starts_with_no_unsaved_changes(self):
+        """Test that app starts with no unsaved changes indicator."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                
+                # App should start with no unsaved changes
+                assert not app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner"
+
+    async def test_title_shows_asterisk_when_unsaved_changes(self):
+        """Test that title shows asterisk when there are unsaved changes."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                
+                # Mark changes as unsaved
+                app.mark_unsaved_changes()
+                
+                # Title should show asterisk
+                assert app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner *"
+
+    async def test_save_removes_unsaved_changes_indicator(self):
+        """Test that saving removes the unsaved changes indicator."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                
+                # Mark changes as unsaved
+                app.mark_unsaved_changes()
+                assert app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner *"
+                
+                # Save the state
+                await pilot.press("ctrl+s")
+                await pilot.pause()
+                
+                # Unsaved changes should be cleared
+                assert not app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner"
+
+    async def test_adding_entry_marks_unsaved_changes(self):
+        """Test that adding an entry marks the app as having unsaved changes."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test(size=(120, 50)) as pilot:
+                await pilot.pause()
+                
+                # Initially no unsaved changes
+                assert not app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner"
+                
+                # Add entry from main screen
+                await pilot.press("insert")
+                await pilot.pause()
+                
+                # Choose expense
+                await pilot.click("#add_expense")
+                await pilot.pause()
+                
+                # Fill out form
+                description_input = app.screen.query_one("#entry_description")
+                await pilot.click("#entry_description")
+                description_input.value = "Test Expense"
+                
+                amount_input = app.screen.query_one("#entry_amount")
+                await pilot.click("#entry_amount")
+                amount_input.value = "100"
+                
+                category_input = app.screen.query_one("#entry_category")
+                await pilot.click("#entry_category")
+                category_input.value = "Test"
+                
+                start_date_input = app.screen.query_one("#entry_start_date")
+                await pilot.click("#entry_start_date")
+                start_date_input.value = "2024-01-01"
+                
+                every_input = app.screen.query_one("#entry_every")
+                await pilot.click("#entry_every")
+                every_input.value = "1"
+                
+                # Save the entry
+                await pilot.click("#entry_save")
+                await pilot.pause()
+                
+                # Should now have unsaved changes
+                assert app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner *"
+
+    async def test_modifying_entry_marks_unsaved_changes(self):
+        """Test that modifying an entry marks the app as having unsaved changes."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.add_entry(
+                FinancialEntry(
+                    amount=Decimal("100"),
+                    description="Original Entry",
+                    type=EntryType.EXPENSE,
+                    category="Test",
+                    recurrence=Recurrence(
+                        type=RecurrenceType.MONTHLY,
+                        start_date=date(2024, 1, 1),
+                    ),
+                )
+            )
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test(size=(120, 50)) as pilot:
+                await pilot.pause()
+                
+                # Initially no unsaved changes
+                assert not app.has_unsaved_changes
+                
+                # Navigate to expense management
+                await pilot.press("e")
+                await pilot.pause()
+                
+                # Click on the entry to edit it
+                await pilot.click("#entries_table")
+                await pilot.press("enter")
+                await pilot.pause()
+                
+                # Modify the description
+                description_input = app.screen.query_one("#entry_description")
+                await pilot.click("#entry_description")
+                description_input.value = "Modified Entry"
+                
+                # Save the changes
+                await pilot.click("#entry_save")
+                await pilot.pause()
+                
+                # Should now have unsaved changes
+                assert app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner *"
+
+    async def test_deleting_entry_marks_unsaved_changes(self):
+        """Test that deleting an entry marks the app as having unsaved changes."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.add_entry(
+                FinancialEntry(
+                    amount=Decimal("100"),
+                    description="Entry to Delete",
+                    type=EntryType.EXPENSE,
+                    category="Test",
+                    recurrence=Recurrence(
+                        type=RecurrenceType.MONTHLY,
+                        start_date=date(2024, 1, 1),
+                    ),
+                )
+            )
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test(size=(120, 50)) as pilot:
+                await pilot.pause()
+                
+                # Initially no unsaved changes
+                assert not app.has_unsaved_changes
+                
+                # Navigate to expense management
+                await pilot.press("e")
+                await pilot.pause()
+                
+                # Delete the entry
+                await pilot.press("delete")
+                await pilot.pause()
+                
+                # Confirm deletion
+                await pilot.click("#confirmation_yes")
+                await pilot.pause()
+                
+                # Should now have unsaved changes
+                assert app.has_unsaved_changes
+                assert app.title == "Personal Budget Planner *"
+
+    async def test_quit_with_no_unsaved_changes_quits_immediately(self):
+        """Test that quitting with no unsaved changes quits immediately."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                
+                # No unsaved changes initially
+                assert not app.has_unsaved_changes
+                
+                # Quit should work without confirmation
+                await pilot.press("ctrl+q")
+                await pilot.pause()
+                
+                # App should have exited (this test passes if no exception occurs)
+
+    async def test_quit_with_unsaved_changes_shows_confirmation(self):
+        """Test that quitting with unsaved changes shows confirmation dialog."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test(size=(120, 50)) as pilot:
+                await pilot.pause()
+                
+                # Mark unsaved changes
+                app.mark_unsaved_changes()
+                assert app.has_unsaved_changes
+                
+                # Try to quit
+                await pilot.press("ctrl+q")
+                await pilot.pause()
+                
+                # Should show confirmation modal
+                # Check that we can see the confirmation buttons
+                yes_button = app.screen.query_one("#confirmation_yes")
+                no_button = app.screen.query_one("#confirmation_no")
+                assert yes_button is not None
+                assert no_button is not None
+
+    async def test_quit_confirmation_no_cancels_quit(self):
+        """Test that clicking 'No' in quit confirmation cancels the quit."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState()
+            state.to_json_file(f.name)
+            
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test(size=(120, 50)) as pilot:
+                await pilot.pause()
+                
+                # Mark unsaved changes
+                app.mark_unsaved_changes()
+                
+                # Try to quit
+                await pilot.press("ctrl+q")
+                await pilot.pause()
+                
+                # Click No to cancel quit
+                await pilot.click("#confirmation_no")
+                await pilot.pause()
+                
+                # Should be back on main screen
+                assert isinstance(app.screen, MainScreen)
+                # Unsaved changes should still be marked
+                assert app.has_unsaved_changes
