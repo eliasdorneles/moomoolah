@@ -1,0 +1,80 @@
+{
+  "all_entries": {
+    "INCOME": [
+      {
+        "amount": "1600",
+        "description": "Net Salary",
+        "type": "INCOME",
+        "recurrence": {
+          "start_date": "2025-01-01",
+          "type": "MONTHLY",
+          "every": 1,
+          "end_date": null
+        },
+        "category": "Essentials"
+      }
+    ],
+    "EXPENSE": [
+      {
+        "amount": "800",
+        "description": "Rent",
+        "type": "EXPENSE",
+        "recurrence": {
+          "start_date": "2025-01-01",
+          "type": "MONTHLY",
+          "every": 1,
+          "end_date": null
+        },
+        "category": "Essentials"
+      },
+      {
+        "amount": "1500",
+        "description": "Shiny New Bycicle",
+        "type": "EXPENSE",
+        "recurrence": {
+          "start_date": "2025-05-24",
+          "type": "ONE_TIME",
+          "every": 1,
+          "end_date": null
+        },
+        "category": "Essentials"
+      },
+      {
+        "amount": "12",
+        "description": "Netflix",
+        "type": "EXPENSE",
+        "recurrence": {
+          "start_date": "2025-03-10",
+          "type": "MONTHLY",
+          "every": 1,
+          "end_date": null
+        },
+        "category": "Comforts"
+      },
+      {
+        "amount": "40",
+        "description": "Phone + internet",
+        "type": "EXPENSE",
+        "recurrence": {
+          "start_date": "2025-01-10",
+          "type": "MONTHLY",
+          "every": 1,
+          "end_date": null
+        },
+        "category": "Essentials"
+      },
+      {
+        "amount": "150",
+        "description": "Gas",
+        "type": "EXPENSE",
+        "recurrence": {
+          "start_date": "2025-06-28",
+          "type": "MONTHLY",
+          "every": 1,
+          "end_date": null
+        },
+        "category": "Essentials"
+      }
+    ]
+  }
+}
