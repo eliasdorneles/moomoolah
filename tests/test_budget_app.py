@@ -361,6 +361,50 @@ class TestBudgetApp:
             # Balance should be unchanged
             assert updated_balance == initial_balance
 
+    async def test_enter_on_empty_expense_list(self):
+        """Test that pressing Enter on empty expense list doesn't crash."""
+        # Create a completely empty state file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            empty_state = FinancialState()
+            empty_state.to_json_file(f.name)
+
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+
+                # Navigate to expense management (truly empty)
+                await pilot.press("e")
+                await pilot.pause()
+
+                # Press Enter on empty list - this should not crash
+                await pilot.press("enter")
+                await pilot.pause()
+
+                # Should still be on the manage entries screen
+                assert app.screen.__class__.__name__ == "ManageEntriesScreen"
+
+    async def test_enter_on_empty_income_list(self):
+        """Test that pressing Enter on truly empty income list doesn't crash."""
+        # Create a completely empty state file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            empty_state = FinancialState()
+            empty_state.to_json_file(f.name)
+
+            app = BudgetApp(state_file=f.name)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+
+                # Navigate to income management (truly empty)
+                await pilot.press("i")
+                await pilot.pause()
+
+                # Press Enter on empty list - this should not crash
+                await pilot.press("enter")
+                await pilot.pause()
+
+                # Should still be on the manage entries screen
+                assert app.screen.__class__.__name__ == "ManageEntriesScreen"
+
 
 class TestManageEntriesScreen:
     """Test the ManageEntriesScreen functionality."""

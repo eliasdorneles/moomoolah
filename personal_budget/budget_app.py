@@ -256,6 +256,10 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
     @work
     @on(DataTable.RowSelected, "#entries_table")
     async def on_row_selected(self, event: DataTable.RowSelected) -> None:
+        # Guard against empty entries list (when only placeholder row exists)
+        if not self.entries:
+            return
+
         entry = self.entries[event.cursor_row]
         new_entry = await self.app.push_screen_wait(
             UpdateEntryModal(entry, f"Update {self.entry_type} Entry")

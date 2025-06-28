@@ -24,4 +24,4 @@
 
 ## Bugs to fix
 
-- [ ] hit Enter on empty income/expense list causes crash
+- [X] hit Enter on empty income/expense list causes crash
