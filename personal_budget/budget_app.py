@@ -122,7 +122,7 @@ class UpdateEntryModal(ModalScreen):
         self.dismiss(None)
 
 
-class ManageEntriesScreen(Screen):
+class ManageEntriesScreen(Screen[list[FinancialEntry]]):
     BINDINGS = [
         ("backspace", "back", "Back"),
         ("escape", "back", "Back"),
@@ -143,7 +143,7 @@ class ManageEntriesScreen(Screen):
         self.entries = entries
 
     def action_back(self) -> None:
-        self.app.pop_screen()
+        self.dismiss(self.entries)
 
     def compose(self) -> ComposeResult:
         yield Header()

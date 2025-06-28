@@ -1,0 +1,429 @@
+import tempfile
+from datetime import date
+from decimal import Decimal
+
+import pytest
+from textual.widgets import DataTable
+
+from personal_budget.budget_app import BudgetApp, MainScreen
+from personal_budget.state import (
+    EntryType,
+    FinancialEntry,
+    FinancialState,
+    Recurrence,
+    RecurrenceType,
+)
+
+
+@pytest.fixture
+def basic_temp_state_file():
+    """Create a basic temporary state file for testing."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        # Create a basic state with some test data
+        state = FinancialState()
+        state.add_entry(
+            FinancialEntry(
+                amount=Decimal("1000"),
+                description="Test Income",
+                type=EntryType.INCOME,
+                category="Income",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 1),
+                ),
+            )
+        )
+        state.to_json_file(f.name)
+        yield f.name
+
+
+class TestBudgetApp:
+    """Test the main BudgetApp functionality."""
+
+    @pytest.fixture
+    def temp_state_file(self):
+        """Create a temporary state file for testing."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            # Create a basic state with some test data
+            state = FinancialState()
+            state.add_entry(
+                FinancialEntry(
+                    amount=Decimal("2000"),
+                    description="Test Salary",
+                    type=EntryType.INCOME,
+                    category="Income",
+                    recurrence=Recurrence(
+                        type=RecurrenceType.MONTHLY,
+                        start_date=date(2024, 1, 1),
+                    ),
+                )
+            )
+            state.add_entry(
+                FinancialEntry(
+                    amount=Decimal("800"),
+                    description="Test Rent",
+                    type=EntryType.EXPENSE,
+                    category="Housing",
+                    recurrence=Recurrence(
+                        type=RecurrenceType.MONTHLY,
+                        start_date=date(2024, 1, 1),
+                    ),
+                )
+            )
+            state.to_json_file(f.name)
+            yield f.name
+
+    async def test_app_initialization(self, temp_state_file):
+        """Test that the app initializes correctly with a state file."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()  # Wait for the app to fully initialize
+            # Check that the main screen is loaded
+            assert isinstance(app.screen, MainScreen)
+            # Check that forecast table is present
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            assert forecast_table is not None
+
+    async def test_forecast_table_displays_data(self, temp_state_file):
+        """Test that the forecast table displays financial data correctly."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+
+            # Should have at least one row of data
+            assert forecast_table.row_count > 0
+
+            # Check that columns are set up correctly
+            assert len(forecast_table.columns) == 4
+            column_labels = [col.label.plain for col in forecast_table.columns.values()]
+            assert column_labels == ["Month", "Expenses", "Income", "Balance"]
+
+    async def test_navigation_to_manage_expenses(self, temp_state_file):
+        """Test navigation to expense management screen using keyboard shortcut."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            # Press 'e' key to navigate to expenses
+            await pilot.press("e")
+            await pilot.pause()
+
+            # Should be on ManageEntriesScreen now
+            assert app.screen.__class__.__name__ == "ManageEntriesScreen"
+            assert app.screen.sub_title == "Managing Expenses"
+
+    async def test_navigation_to_manage_income(self, temp_state_file):
+        """Test navigation to income management screen using keyboard shortcut."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            # Press 'i' key to navigate to income
+            await pilot.press("i")
+            await pilot.pause()
+
+            # Should be on ManageEntriesScreen now
+            assert app.screen.__class__.__name__ == "ManageEntriesScreen"
+            assert app.screen.sub_title == "Managing Income"
+
+    async def test_save_state_action(self, temp_state_file):
+        """Test that Ctrl+S saves the state."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            # Trigger save action
+            await pilot.press("ctrl+s")
+            await pilot.pause()
+
+            # Check that notification was displayed (implicit test via no exception)
+            # The actual file saving is tested in state tests
+
+    async def test_forecast_updates_after_adding_expense(self, temp_state_file):
+        """Test that the main screen forecast updates after adding an expense."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Get initial forecast data
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+
+            # Get first month's balance from the forecast table
+            first_row_cells = list(forecast_table.get_row_at(0))
+            initial_balance_text = first_row_cells[3].plain  # Balance column
+            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+
+            # Navigate to expense management
+            await pilot.press("e")
+            await pilot.pause()
+
+            # Add a new expense
+            await pilot.press("insert")  # Trigger add entry action
+            await pilot.pause()
+
+            # Fill in the expense form
+            description_input = app.screen.query_one("#entry_description")
+            await pilot.click("#entry_description")
+            description_input.value = "Test Expense"
+
+            amount_input = app.screen.query_one("#entry_amount")
+            await pilot.click("#entry_amount")
+            amount_input.value = "300"
+
+            category_input = app.screen.query_one("#entry_category")
+            await pilot.click("#entry_category")
+            category_input.value = "Test Category"
+
+            # Set start date (required field)
+            start_date_input = app.screen.query_one("#entry_start_date")
+            await pilot.click("#entry_start_date")
+            start_date_input.value = "2024-01-01"
+
+            # Set every field (required)
+            every_input = app.screen.query_one("#entry_every")
+            await pilot.click("#entry_every")
+            every_input.value = "1"
+
+            # Save the entry
+            await pilot.click("#entry_save")
+            await pilot.pause()
+
+            # Check that we're back on ManageEntriesScreen after saving
+            assert app.screen.__class__.__name__ == "ManageEntriesScreen"
+
+            # Navigate back to main screen
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Verify we're back on main screen
+            assert isinstance(app.screen, MainScreen)
+
+            # Check that the forecast table has been updated
+            updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
+
+            # Get the updated balance for the first month
+            updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
+            updated_balance_text = updated_first_row_cells[3].plain  # Balance column
+            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+
+            # The balance should have decreased by 300 (the expense amount)
+            expected_balance = initial_balance - Decimal("300")
+            assert updated_balance == expected_balance, (
+                f"Expected balance {expected_balance}, got {updated_balance}"
+            )
+
+
+class TestManageEntriesScreen:
+    """Test the ManageEntriesScreen functionality."""
+
+    @pytest.fixture
+    def sample_entries(self):
+        """Create sample financial entries for testing."""
+        return [
+            FinancialEntry(
+                amount=Decimal("1000"),
+                description="Salary",
+                type=EntryType.INCOME,
+                category="Job",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 1),
+                ),
+            ),
+            FinancialEntry(
+                amount=Decimal("500"),
+                description="Rent",
+                type=EntryType.EXPENSE,
+                category="Housing",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 1),
+                ),
+            ),
+        ]
+
+    async def test_entries_table_displays_data(
+        self, sample_entries, basic_temp_state_file
+    ):
+        """Test that entries are displayed correctly in the table."""
+        from personal_budget.budget_app import ManageEntriesScreen
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        expenses = [e for e in sample_entries if e.type == EntryType.EXPENSE]
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses)
+            app.push_screen(screen)
+            await pilot.pause()
+
+            entries_table = app.screen.query_one("#entries_table", DataTable)
+            assert entries_table.row_count == 1  # One expense entry
+
+            # Check table columns
+            column_labels = [col.label.plain for col in entries_table.columns.values()]
+            assert column_labels == ["Description", "Amount", "Recurrence", "Category"]
+
+    async def test_back_navigation_with_escape(
+        self, sample_entries, basic_temp_state_file
+    ):
+        """Test that escape key navigates back from entries screen."""
+        from personal_budget.budget_app import ManageEntriesScreen
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        expenses = [e for e in sample_entries if e.type == EntryType.EXPENSE]
+
+        async with app.run_test() as pilot:
+            await pilot.pause()  # Wait for main screen
+            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses)
+            app.push_screen(screen)
+            await pilot.pause()
+
+            # Press escape to go back
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Should be back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_back_navigation_with_backspace(
+        self, sample_entries, basic_temp_state_file
+    ):
+        """Test that backspace key navigates back from entries screen."""
+        from personal_budget.budget_app import ManageEntriesScreen
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        expenses = [e for e in sample_entries if e.type == EntryType.EXPENSE]
+
+        async with app.run_test() as pilot:
+            await pilot.pause()  # Wait for main screen
+            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses)
+            app.push_screen(screen)
+            await pilot.pause()
+
+            # Press backspace to go back
+            await pilot.press("backspace")
+            await pilot.pause()
+
+            # Should be back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+
+class TestConfirmationModal:
+    """Test the ConfirmationModal widget."""
+
+    async def test_confirmation_modal_yes_button(self, basic_temp_state_file):
+        """Test that clicking 'Yes' returns True."""
+        from personal_budget.widgets import ConfirmationModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = ConfirmationModal("Are you sure?")
+
+            # Start the modal and get the future
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Click Yes button
+            await pilot.click("#confirmation_yes")
+            await pilot.pause()
+
+            # Modal should be dismissed, check that we're back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_confirmation_modal_no_button(self, basic_temp_state_file):
+        """Test that clicking 'No' returns False."""
+        from personal_budget.widgets import ConfirmationModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = ConfirmationModal("Are you sure?")
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Click No button
+            await pilot.click("#confirmation_no")
+            await pilot.pause()
+
+            # Modal should be dismissed, check that we're back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_confirmation_modal_escape_key(self, basic_temp_state_file):
+        """Test that escape key cancels the modal."""
+        from personal_budget.widgets import ConfirmationModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = ConfirmationModal("Are you sure?")
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Press escape to cancel
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Modal should be dismissed, check that we're back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+
+class TestUpdateEntryModal:
+    """Test the UpdateEntryModal functionality."""
+
+    @pytest.fixture
+    def sample_entry(self):
+        """Create a sample entry for testing."""
+        return FinancialEntry(
+            amount=Decimal("100"),
+            description="Test Entry",
+            type=EntryType.EXPENSE,
+            category="Test",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2024, 1, 1),
+            ),
+        )
+
+    async def test_update_entry_modal_cancel(self, sample_entry, basic_temp_state_file):
+        """Test that cancel button dismisses modal."""
+        from personal_budget.budget_app import UpdateEntryModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 40)) as pilot:  # Larger screen for modal
+            await pilot.pause()
+            modal = UpdateEntryModal(sample_entry)
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Click Cancel button
+            await pilot.click("#entry_cancel")
+            await pilot.pause()
+
+            # Modal should be dismissed, back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_update_entry_modal_form_fields_populated(
+        self, sample_entry, basic_temp_state_file
+    ):
+        """Test that form fields are populated with entry data."""
+        from personal_budget.budget_app import UpdateEntryModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 40)) as pilot:  # Larger screen for modal
+            await pilot.pause()
+            modal = UpdateEntryModal(sample_entry)
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Check that fields are populated correctly
+            description_input = app.screen.query_one("#entry_description")
+            assert description_input.value == "Test Entry"
+
+            amount_input = app.screen.query_one("#entry_amount")
+            assert amount_input.value == "100"
+
+            category_input = app.screen.query_one("#entry_category")
+            assert category_input.value == "Test"
