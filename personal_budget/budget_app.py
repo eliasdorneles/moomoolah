@@ -29,6 +29,48 @@ from personal_budget.state import (
 from personal_budget.widgets import ConfirmationModal
 
 
+class EntryTypeModal(ModalScreen[EntryType]):
+    """Modal to choose between adding an expense or income."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Cancel")]
+    CSS = """
+    EntryTypeModal {
+      align: center middle;
+    }
+
+    EntryTypeModal Container {
+      width: 50;
+      height: 10;
+      outline: solid $primary;
+      padding: 2;
+    }
+    EntryTypeModal Horizontal {
+        margin-top: 1;
+        align: center middle;
+    }
+    EntryTypeModal Button {
+        margin-right: 2;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        from textual.containers import Container, Horizontal
+
+        with Container():
+            yield Label("What would you like to add?")
+            with Horizontal():
+                yield Button("Expense", id="add_expense", variant="error")
+                yield Button("Income", id="add_income", variant="success")
+
+    @on(Button.Pressed, "#add_expense")
+    def on_add_expense(self) -> None:
+        self.dismiss(EntryType.EXPENSE)
+
+    @on(Button.Pressed, "#add_income")
+    def on_add_income(self) -> None:
+        self.dismiss(EntryType.INCOME)
+
+
 class UpdateEntryModal(ModalScreen):
     SUB_TITLE = "Update entry"
     BINDINGS = [("escape", "app.pop_screen", "Cancel")]
@@ -234,6 +276,7 @@ class MainScreen(Screen):
     BINDINGS = [
         ("e", "manage_expenses", "Manage Expenses"),
         ("i", "manage_income", "Manage Income"),
+        ("insert", "add_entry", "Add Entry"),
     ]
 
     @work
@@ -247,6 +290,36 @@ class MainScreen(Screen):
         screen = ManageEntriesScreen(EntryType.INCOME, self.state.income_entries)
         await self.app.push_screen_wait(screen)
         self._sync_table()
+
+    @work
+    async def action_add_entry(self) -> None:
+        """Show modal to choose entry type, then add the entry."""
+        # First, ask user what type of entry they want to add
+        entry_type = await self.app.push_screen_wait(EntryTypeModal())
+        if entry_type is None:
+            return  # User cancelled
+
+        # Show the appropriate entry modal
+        modal_title = "Add Expense" if entry_type == EntryType.EXPENSE else "Add Income"
+        new_entry = await self.app.push_screen_wait(
+            UpdateEntryModal(FinancialEntry(type=entry_type), modal_title)
+        )
+
+        if new_entry:
+            # Add entry to the appropriate list
+            if entry_type == EntryType.EXPENSE:
+                self.state.expense_entries.append(new_entry)
+                self.notify(
+                    f"Added expense {new_entry.description}", title="Expense added"
+                )
+            else:
+                self.state.income_entries.append(new_entry)
+                self.notify(
+                    f"Added income {new_entry.description}", title="Income added"
+                )
+
+            # Refresh the forecast table
+            self._sync_table()
 
     def compose(self) -> ComposeResult:
         # TODO: if state has no entries, invite user to create a new one

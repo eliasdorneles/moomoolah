@@ -5,13 +5,12 @@
 - [X] split "Manage entries" into separate Expenses and Income screens
 - [X] implement delete entry
 - [X] display next 12 months forecast on main screen
-- [x] display previous 3 months at the bottom
+- [X] display previous 3 months at the bottom
+- [X] refresh forecast when getting back from manage expenses/income to main screen
+- [X] when user press Insert in main screen, display modal if wants to add
+      expense or income
 
 ## Planned Features
-
-- [ ] refresh forecast when getting back from manage expenses/income to main screen
-- [ ] when user press Insert in main screen, display modal if wants to add
-      expense or income
 - [ ] display income list in light green background, and expenses in light
       orange background
 - [ ] view details for a given month forecast, detailing expenses per category
@@ -25,5 +24,4 @@
 
 ## Bugs to fix
 
-- [ ] hit Enter on empty list causes crash
-- [ ] not displaying one-time expense (test with demo_state.json)
+- [ ] hit Enter on empty income/expense list causes crash

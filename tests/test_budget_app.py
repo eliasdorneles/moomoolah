@@ -207,6 +207,160 @@ class TestBudgetApp:
                 f"Expected balance {expected_balance}, got {updated_balance}"
             )
 
+    async def test_add_entry_from_main_screen_expense(self, temp_state_file):
+        """Test adding an expense directly from main screen using Insert key."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Get initial forecast data
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            first_row_cells = list(forecast_table.get_row_at(0))
+            initial_balance_text = first_row_cells[3].plain  # Balance column
+            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+
+            # Press Insert to add entry from main screen
+            await pilot.press("insert")
+            await pilot.pause()
+
+            # Should see entry type modal - click Expense
+            await pilot.click("#add_expense")
+            await pilot.pause()
+
+            # Should now see the entry form - fill it out
+            description_input = app.screen.query_one("#entry_description")
+            await pilot.click("#entry_description")
+            description_input.value = "Direct Expense"
+
+            amount_input = app.screen.query_one("#entry_amount")
+            await pilot.click("#entry_amount")
+            amount_input.value = "150"
+
+            category_input = app.screen.query_one("#entry_category")
+            await pilot.click("#entry_category")
+            category_input.value = "Test"
+
+            # Set required fields
+            start_date_input = app.screen.query_one("#entry_start_date")
+            await pilot.click("#entry_start_date")
+            start_date_input.value = "2024-01-01"
+
+            every_input = app.screen.query_one("#entry_every")
+            await pilot.click("#entry_every")
+            every_input.value = "1"
+
+            # Save the entry
+            await pilot.click("#entry_save")
+            await pilot.pause()
+
+            # Should be back on main screen
+            assert isinstance(app.screen, MainScreen)
+
+            # Check that the forecast updated
+            updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
+            updated_balance_text = updated_first_row_cells[3].plain
+            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+
+            # Balance should have decreased by 150
+            expected_balance = initial_balance - Decimal("150")
+            assert updated_balance == expected_balance, (
+                f"Expected balance {expected_balance}, got {updated_balance}"
+            )
+
+    async def test_add_entry_from_main_screen_income(self, temp_state_file):
+        """Test adding income directly from main screen using Insert key."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Get initial forecast data
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            first_row_cells = list(forecast_table.get_row_at(0))
+            initial_balance_text = first_row_cells[3].plain
+            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+
+            # Press Insert to add entry from main screen
+            await pilot.press("insert")
+            await pilot.pause()
+
+            # Should see entry type modal - click Income
+            await pilot.click("#add_income")
+            await pilot.pause()
+
+            # Fill out the income form
+            description_input = app.screen.query_one("#entry_description")
+            await pilot.click("#entry_description")
+            description_input.value = "Bonus"
+
+            amount_input = app.screen.query_one("#entry_amount")
+            await pilot.click("#entry_amount")
+            amount_input.value = "500"
+
+            category_input = app.screen.query_one("#entry_category")
+            await pilot.click("#entry_category")
+            category_input.value = "Extra"
+
+            # Set required fields
+            start_date_input = app.screen.query_one("#entry_start_date")
+            await pilot.click("#entry_start_date")
+            start_date_input.value = "2024-01-01"
+
+            every_input = app.screen.query_one("#entry_every")
+            await pilot.click("#entry_every")
+            every_input.value = "1"
+
+            # Save the entry
+            await pilot.click("#entry_save")
+            await pilot.pause()
+
+            # Should be back on main screen
+            assert isinstance(app.screen, MainScreen)
+
+            # Check that the forecast updated
+            updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
+            updated_balance_text = updated_first_row_cells[3].plain
+            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+
+            # Balance should have increased by 500
+            expected_balance = initial_balance + Decimal("500")
+            assert updated_balance == expected_balance, (
+                f"Expected balance {expected_balance}, got {updated_balance}"
+            )
+
+    async def test_add_entry_from_main_screen_cancel(self, temp_state_file):
+        """Test canceling the add entry flow from main screen."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Get initial forecast data
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            first_row_cells = list(forecast_table.get_row_at(0))
+            initial_balance_text = first_row_cells[3].plain
+            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+
+            # Press Insert to add entry from main screen
+            await pilot.press("insert")
+            await pilot.pause()
+
+            # Cancel the entry type modal
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Should be back on main screen with no changes
+            assert isinstance(app.screen, MainScreen)
+
+            # Check that forecast is unchanged
+            updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
+            updated_balance_text = updated_first_row_cells[3].plain
+            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+
+            # Balance should be unchanged
+            assert updated_balance == initial_balance
+
 
 class TestManageEntriesScreen:
     """Test the ManageEntriesScreen functionality."""
