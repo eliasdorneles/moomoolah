@@ -28,3 +28,9 @@ build-backend = "hatchling.build"
 
 [tool.black]
 line-length=90
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "ruff>=0.12.1",
+]
