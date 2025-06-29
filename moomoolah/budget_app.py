@@ -19,14 +19,14 @@ from textual.widgets import (
     RadioSet,
 )
 
-from personal_budget.state import (
+from moomoolah.state import (
     EntryType,
     FinancialEntry,
     FinancialState,
     Recurrence,
     RecurrenceType,
 )
-from personal_budget.widgets import ConfirmationModal
+from moomoolah.widgets import ConfirmationModal
 
 
 class EntryTypeModal(ModalScreen[EntryType]):

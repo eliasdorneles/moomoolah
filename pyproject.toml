@@ -1,7 +1,7 @@
 [project]
-name = "personal-budget"
+name = "moomoolah"
 version = "0.1.0"
-description = "Personal Budget Planner"
+description = "MooMoolah - Personal Budget Planner"
 authors = [
     {name = "Elias Dorneles", email = "elias.dorneles@hey.com"}
 ]
@@ -13,6 +13,9 @@ dependencies = [
     "pydantic>=2.6.3",
     "python-dateutil>=2.9.0",
 ]
+
+[project.scripts]
+moomoolah = "moomoolah.__main__:main"
 
 [project.optional-dependencies]
 dev = [

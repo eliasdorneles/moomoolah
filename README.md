@@ -1,4 +1,4 @@
-# Personal Budget Planning
+# MooMoolah
 
 A terminal-based personal budget planning application built with Python and Textual.
 
@@ -35,7 +35,7 @@ This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 3. Run the application:
    ```bash
-   uv run python personal_budget/budget_app.py <state_file.json>
+   uv run moomoolah <state_file.json>
    ```
 
 The state file will be created if it doesn't exist.

@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from personal_budget.state import (
+from moomoolah.state import (
     EntryType,
     FinancialEntry,
     FinancialState,

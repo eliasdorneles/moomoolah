@@ -5,8 +5,8 @@ from decimal import Decimal
 import pytest
 from textual.widgets import DataTable
 
-from personal_budget.budget_app import BudgetApp, MainScreen
-from personal_budget.state import (
+from moomoolah.budget_app import BudgetApp, MainScreen
+from moomoolah.state import (
     EntryType,
     FinancialEntry,
     FinancialState,
@@ -439,7 +439,7 @@ class TestManageEntriesScreen:
         self, sample_entries, basic_temp_state_file
     ):
         """Test that entries are displayed correctly in the table."""
-        from personal_budget.budget_app import ManageEntriesScreen
+        from moomoolah.budget_app import ManageEntriesScreen
 
         app = BudgetApp(state_file=basic_temp_state_file)
         expenses = [e for e in sample_entries if e.type == EntryType.EXPENSE]
@@ -461,7 +461,7 @@ class TestManageEntriesScreen:
         self, sample_entries, basic_temp_state_file
     ):
         """Test that escape key navigates back from entries screen."""
-        from personal_budget.budget_app import ManageEntriesScreen
+        from moomoolah.budget_app import ManageEntriesScreen
 
         app = BudgetApp(state_file=basic_temp_state_file)
         expenses = [e for e in sample_entries if e.type == EntryType.EXPENSE]
@@ -483,7 +483,7 @@ class TestManageEntriesScreen:
         self, sample_entries, basic_temp_state_file
     ):
         """Test that backspace key navigates back from entries screen."""
-        from personal_budget.budget_app import ManageEntriesScreen
+        from moomoolah.budget_app import ManageEntriesScreen
 
         app = BudgetApp(state_file=basic_temp_state_file)
         expenses = [e for e in sample_entries if e.type == EntryType.EXPENSE]
@@ -507,7 +507,7 @@ class TestConfirmationModal:
 
     async def test_confirmation_modal_yes_button(self, basic_temp_state_file):
         """Test that clicking 'Yes' returns True."""
-        from personal_budget.widgets import ConfirmationModal
+        from moomoolah.widgets import ConfirmationModal
 
         app = BudgetApp(state_file=basic_temp_state_file)
         async with app.run_test() as pilot:
@@ -527,7 +527,7 @@ class TestConfirmationModal:
 
     async def test_confirmation_modal_no_button(self, basic_temp_state_file):
         """Test that clicking 'No' returns False."""
-        from personal_budget.widgets import ConfirmationModal
+        from moomoolah.widgets import ConfirmationModal
 
         app = BudgetApp(state_file=basic_temp_state_file)
         async with app.run_test() as pilot:
@@ -547,7 +547,7 @@ class TestConfirmationModal:
 
     async def test_confirmation_modal_escape_key(self, basic_temp_state_file):
         """Test that escape key cancels the modal."""
-        from personal_budget.widgets import ConfirmationModal
+        from moomoolah.widgets import ConfirmationModal
 
         app = BudgetApp(state_file=basic_temp_state_file)
         async with app.run_test() as pilot:
@@ -585,7 +585,7 @@ class TestUpdateEntryModal:
 
     async def test_update_entry_modal_cancel(self, sample_entry, basic_temp_state_file):
         """Test that cancel button dismisses modal."""
-        from personal_budget.budget_app import UpdateEntryModal
+        from moomoolah.budget_app import UpdateEntryModal
 
         app = BudgetApp(state_file=basic_temp_state_file)
         async with app.run_test(size=(120, 40)) as pilot:  # Larger screen for modal
@@ -607,7 +607,7 @@ class TestUpdateEntryModal:
         self, sample_entry, basic_temp_state_file
     ):
         """Test that form fields are populated with entry data."""
-        from personal_budget.budget_app import UpdateEntryModal
+        from moomoolah.budget_app import UpdateEntryModal
 
         app = BudgetApp(state_file=basic_temp_state_file)
         async with app.run_test(size=(120, 40)) as pilot:  # Larger screen for modal
@@ -635,11 +635,11 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test() as pilot:
                 await pilot.pause()
-                
+
                 # App should start with no unsaved changes
                 assert not app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner"
@@ -649,14 +649,14 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test() as pilot:
                 await pilot.pause()
-                
+
                 # Mark changes as unsaved
                 app.mark_unsaved_changes()
-                
+
                 # Title should show asterisk
                 assert app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner *"
@@ -666,20 +666,20 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test() as pilot:
                 await pilot.pause()
-                
+
                 # Mark changes as unsaved
                 app.mark_unsaved_changes()
                 assert app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner *"
-                
+
                 # Save the state
                 await pilot.press("ctrl+s")
                 await pilot.pause()
-                
+
                 # Unsaved changes should be cleared
                 assert not app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner"
@@ -689,48 +689,48 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test(size=(120, 50)) as pilot:
                 await pilot.pause()
-                
+
                 # Initially no unsaved changes
                 assert not app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner"
-                
+
                 # Add entry from main screen
                 await pilot.press("insert")
                 await pilot.pause()
-                
+
                 # Choose expense
                 await pilot.click("#add_expense")
                 await pilot.pause()
-                
+
                 # Fill out form
                 description_input = app.screen.query_one("#entry_description")
                 await pilot.click("#entry_description")
                 description_input.value = "Test Expense"
-                
+
                 amount_input = app.screen.query_one("#entry_amount")
                 await pilot.click("#entry_amount")
                 amount_input.value = "100"
-                
+
                 category_input = app.screen.query_one("#entry_category")
                 await pilot.click("#entry_category")
                 category_input.value = "Test"
-                
+
                 start_date_input = app.screen.query_one("#entry_start_date")
                 await pilot.click("#entry_start_date")
                 start_date_input.value = "2024-01-01"
-                
+
                 every_input = app.screen.query_one("#entry_every")
                 await pilot.click("#entry_every")
                 every_input.value = "1"
-                
+
                 # Save the entry
                 await pilot.click("#entry_save")
                 await pilot.pause()
-                
+
                 # Should now have unsaved changes
                 assert app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner *"
@@ -752,32 +752,32 @@ class TestUnsavedChanges:
                 )
             )
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test(size=(120, 50)) as pilot:
                 await pilot.pause()
-                
+
                 # Initially no unsaved changes
                 assert not app.has_unsaved_changes
-                
+
                 # Navigate to expense management
                 await pilot.press("e")
                 await pilot.pause()
-                
+
                 # Click on the entry to edit it
                 await pilot.click("#entries_table")
                 await pilot.press("enter")
                 await pilot.pause()
-                
+
                 # Modify the description
                 description_input = app.screen.query_one("#entry_description")
                 await pilot.click("#entry_description")
                 description_input.value = "Modified Entry"
-                
+
                 # Save the changes
                 await pilot.click("#entry_save")
                 await pilot.pause()
-                
+
                 # Should now have unsaved changes
                 assert app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner *"
@@ -799,26 +799,26 @@ class TestUnsavedChanges:
                 )
             )
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test(size=(120, 50)) as pilot:
                 await pilot.pause()
-                
+
                 # Initially no unsaved changes
                 assert not app.has_unsaved_changes
-                
+
                 # Navigate to expense management
                 await pilot.press("e")
                 await pilot.pause()
-                
+
                 # Delete the entry
                 await pilot.press("delete")
                 await pilot.pause()
-                
+
                 # Confirm deletion
                 await pilot.click("#confirmation_yes")
                 await pilot.pause()
-                
+
                 # Should now have unsaved changes
                 assert app.has_unsaved_changes
                 assert app.title == "Personal Budget Planner *"
@@ -828,18 +828,18 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test() as pilot:
                 await pilot.pause()
-                
+
                 # No unsaved changes initially
                 assert not app.has_unsaved_changes
-                
+
                 # Quit should work without confirmation
                 await pilot.press("ctrl+q")
                 await pilot.pause()
-                
+
                 # App should have exited (this test passes if no exception occurs)
 
     async def test_quit_with_unsaved_changes_shows_confirmation(self):
@@ -847,19 +847,19 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test(size=(120, 50)) as pilot:
                 await pilot.pause()
-                
+
                 # Mark unsaved changes
                 app.mark_unsaved_changes()
                 assert app.has_unsaved_changes
-                
+
                 # Try to quit
                 await pilot.press("ctrl+q")
                 await pilot.pause()
-                
+
                 # Should show confirmation modal
                 # Check that we can see the confirmation buttons
                 yes_button = app.screen.query_one("#confirmation_yes")
@@ -872,22 +872,22 @@ class TestUnsavedChanges:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             state = FinancialState()
             state.to_json_file(f.name)
-            
+
             app = BudgetApp(state_file=f.name)
             async with app.run_test(size=(120, 50)) as pilot:
                 await pilot.pause()
-                
+
                 # Mark unsaved changes
                 app.mark_unsaved_changes()
-                
+
                 # Try to quit
                 await pilot.press("ctrl+q")
                 await pilot.pause()
-                
+
                 # Click No to cancel quit
                 await pilot.click("#confirmation_no")
                 await pilot.pause()
-                
+
                 # Should be back on main screen
                 assert isinstance(app.screen, MainScreen)
                 # Unsaved changes should still be marked

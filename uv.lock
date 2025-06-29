@@ -446,6 +446,52 @@ wheels = [
 ]
 
 [[package]]
+name = "moomoolah"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dateutil" },
+    { name = "textual" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "ipython" },
+    { name = "isort" },
+    { name = "pytest" },
+    { name = "textual-dev" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "textual-dev" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.22.1" },
+    { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13.2" },
+    { name = "pydantic", specifier = ">=2.6.3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.2" },
+    { name = "python-dateutil", specifier = ">=2.9.0" },
+    { name = "textual", specifier = ">=0.52.1" },
+    { name = "textual-dev", marker = "extra == 'dev'", specifier = ">=1.5.1" },
+]
+provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-asyncio", specifier = ">=0.21.0" },
+    { name = "ruff", specifier = ">=0.12.1" },
+    { name = "textual-dev", specifier = ">=1.7.0" },
+]
+
+[[package]]
 name = "msgpack"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -580,52 +626,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/66/94/68e2e17afaa9169cf6412ab0f28623903be73d1b32e208d9e8e541bb086d/parso-0.8.4.tar.gz", hash = "sha256:eb3a7b58240fb99099a345571deecc0f9540ea5f4dd2fe14c2a99d6b281ab92d", size = 400609, upload-time = "2024-04-05T09:43:55.897Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/ac/dac4a63f978e4dcb3c6d3a78c4d8e0192a113d288502a1216950c41b1027/parso-0.8.4-py2.py3-none-any.whl", hash = "sha256:a418670a20291dacd2dddc80c377c5c3791378ee1e8d12bffc35420643d43f18", size = 103650, upload-time = "2024-04-05T09:43:53.299Z" },
-]
-
-[[package]]
-name = "personal-budget"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "pydantic" },
-    { name = "python-dateutil" },
-    { name = "textual" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "ipython" },
-    { name = "isort" },
-    { name = "pytest" },
-    { name = "textual-dev" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-    { name = "textual-dev" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.22.1" },
-    { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13.2" },
-    { name = "pydantic", specifier = ">=2.6.3" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.2" },
-    { name = "python-dateutil", specifier = ">=2.9.0" },
-    { name = "textual", specifier = ">=0.52.1" },
-    { name = "textual-dev", marker = "extra == 'dev'", specifier = ">=1.5.1" },
-]
-provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "pytest-asyncio", specifier = ">=0.21.0" },
-    { name = "ruff", specifier = ">=0.12.1" },
-    { name = "textual-dev", specifier = ">=1.7.0" },
 ]
 
 [[package]]
