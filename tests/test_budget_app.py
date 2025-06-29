@@ -626,6 +626,31 @@ class TestUpdateEntryModal:
             category_input = app.screen.query_one("#entry_category")
             assert category_input.value == "Test"
 
+    async def test_when_user_press_enter_in_update_entry_modal_then_save_entry(
+        self, sample_entry, basic_temp_state_file
+    ):
+        from moomoolah.budget_app import UpdateEntryModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            modal = UpdateEntryModal(sample_entry, "Test Modal")
+
+            # Push the modal to the screen
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Modify a field to test the save
+            description_input = app.screen.query_one("#entry_description")
+            description_input.value = "Updated Test Entry"
+
+            # Press ENTER to save - this should trigger the save action
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Modal should be dismissed, back to main screen
+            assert isinstance(app.screen, MainScreen)
+
 
 class TestUnsavedChanges:
     """Test the unsaved changes tracking functionality."""
@@ -659,7 +684,7 @@ class TestUnsavedChanges:
 
                 # Title should show asterisk
                 assert app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner *"
+                assert app.title == "MooMoolah - Personal Budget Planner *"
 
     async def test_save_removes_unsaved_changes_indicator(self):
         """Test that saving removes the unsaved changes indicator."""
@@ -674,7 +699,7 @@ class TestUnsavedChanges:
                 # Mark changes as unsaved
                 app.mark_unsaved_changes()
                 assert app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner *"
+                assert app.title == "MooMoolah - Personal Budget Planner *"
 
                 # Save the state
                 await pilot.press("ctrl+s")
@@ -733,7 +758,7 @@ class TestUnsavedChanges:
 
                 # Should now have unsaved changes
                 assert app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner *"
+                assert app.title == "MooMoolah - Personal Budget Planner *"
 
     async def test_modifying_entry_marks_unsaved_changes(self):
         """Test that modifying an entry marks the app as having unsaved changes."""
@@ -780,7 +805,7 @@ class TestUnsavedChanges:
 
                 # Should now have unsaved changes
                 assert app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner *"
+                assert app.title == "MooMoolah - Personal Budget Planner *"
 
     async def test_deleting_entry_marks_unsaved_changes(self):
         """Test that deleting an entry marks the app as having unsaved changes."""
@@ -821,7 +846,7 @@ class TestUnsavedChanges:
 
                 # Should now have unsaved changes
                 assert app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner *"
+                assert app.title == "MooMoolah - Personal Budget Planner *"
 
     async def test_quit_with_no_unsaved_changes_quits_immediately(self):
         """Test that quitting with no unsaved changes quits immediately."""

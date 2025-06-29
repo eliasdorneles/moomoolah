@@ -7,6 +7,7 @@ from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Grid
+from textual.events import Key
 from textual.screen import ModalScreen, Screen
 from textual.widgets import (
     Button,
@@ -162,6 +163,12 @@ class UpdateEntryModal(ModalScreen):
     @on(Button.Pressed, "#entry_cancel")
     def on_cancel(self, _) -> None:
         self.dismiss(None)
+
+    def on_key(self, event: Key) -> None:
+        """Handle key events, specifically ENTER to save."""
+        if event.key == "enter":
+            event.prevent_default()
+            self.on_save(None)
 
 
 class ManageEntriesScreen(Screen[list[FinancialEntry]]):
@@ -386,7 +393,7 @@ class MainScreen(Screen):
 
 
 class BudgetApp(App):
-    TITLE = "MooMooLah - Personal Budget Planner"
+    TITLE = "MooMoolah - Personal Budget Planner"
     CSS_PATH = "style.css"
 
     BINDINGS = [
@@ -425,7 +432,7 @@ class BudgetApp(App):
 
     def _update_title(self) -> None:
         """Update the app title to show unsaved changes indicator."""
-        base_title = "Personal Budget Planner"
+        base_title = "MooMoolah - Personal Budget Planner"
         if self.has_unsaved_changes:
             self.title = f"{base_title} *"
         else:
