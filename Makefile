@@ -34,6 +34,18 @@ clean:  ## Clean up temporary files and caches
 install:  ## Install dependencies
 	uv sync
 
+.PHONY: release
+release:  ## Prepare a new release (VERSION=x.y.z or BUMP=major/minor/patch)
+	@VERSION=$(VERSION) BUMP=$(BUMP) ./release.sh prepare
+
+.PHONY: reset-release
+reset-release:  ## Reset the last release preparation
+	@./release.sh reset
+
+.PHONY: publish-release
+publish-release:  ## Publish the prepared release to PyPI and GitHub
+	@./release.sh publish
+
 # Implements this pattern for autodocumenting Makefiles:
 # https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 #
