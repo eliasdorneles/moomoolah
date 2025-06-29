@@ -9,6 +9,6 @@
 ## Project Context
 - This is a personal budget application built with Textual
 - Uses uv for dependency management
-- Has pytest for testing and ruff for linting
 - Run tests with: uv run pytest ...
+- Look at the Makefile for other helpful commands
 - Look at plan.md for planned features and bugs to fix
