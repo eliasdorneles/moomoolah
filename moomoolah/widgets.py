@@ -1,6 +1,7 @@
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
+from textual.events import Key
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label
 
@@ -45,3 +46,11 @@ class ConfirmationModal(ModalScreen[bool]):
     @on(Button.Pressed, "#confirmation_no")
     def on_no(self, _) -> None:
         self.dismiss(False)
+
+    def on_key(self, event: Key) -> None:
+        if event.key == "left":
+            self.focus_previous()
+            event.prevent_default()
+        elif event.key == "right":
+            self.focus_next()
+            event.prevent_default()

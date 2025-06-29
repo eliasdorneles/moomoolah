@@ -71,6 +71,14 @@ class EntryTypeModal(ModalScreen[EntryType]):
     def on_add_income(self) -> None:
         self.dismiss(EntryType.INCOME)
 
+    def on_key(self, event: Key) -> None:
+        if event.key == "left":
+            self.focus_previous()
+            event.prevent_default()
+        elif event.key == "right":
+            self.focus_next()
+            event.prevent_default()
+
 
 class UpdateEntryModal(ModalScreen):
     SUB_TITLE = "Update entry"
