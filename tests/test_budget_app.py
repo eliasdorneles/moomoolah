@@ -642,7 +642,7 @@ class TestUnsavedChanges:
 
                 # App should start with no unsaved changes
                 assert not app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner"
+                assert app.title == "MooMoolah - Personal Budget Planner"
 
     async def test_title_shows_asterisk_when_unsaved_changes(self):
         """Test that title shows asterisk when there are unsaved changes."""
@@ -682,7 +682,7 @@ class TestUnsavedChanges:
 
                 # Unsaved changes should be cleared
                 assert not app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner"
+                assert app.title == "MooMoolah - Personal Budget Planner"
 
     async def test_adding_entry_marks_unsaved_changes(self):
         """Test that adding an entry marks the app as having unsaved changes."""
@@ -696,7 +696,7 @@ class TestUnsavedChanges:
 
                 # Initially no unsaved changes
                 assert not app.has_unsaved_changes
-                assert app.title == "Personal Budget Planner"
+                assert app.title == "MooMoolah - Personal Budget Planner"
 
                 # Add entry from main screen
                 await pilot.press("insert")
