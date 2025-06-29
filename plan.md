@@ -11,12 +11,12 @@
       expense or income
 - [X] display an indication (e.g. * in the title) if there are unsaved changes
       and ask for confirmation when exiting with unsaved changes
+- [x] in the add/update dialogs, hit the primary button when user press ENTER
+- [x] in the modal dialog, let user use left/right arrow keys to switch focus
+  to left/right
 
 ## Planned Features
 
-- [ ] in the add/update dialogs, hit the primary button when user press ENTER
-- [ ] in the modal dialog, let user use left/right arrow keys to switch focus
-  to left/right
 - [ ] do not require state file be given as argument -- if not given, create a
   file in the proper default user dir (follow freedesktop specs), using
   appropriate private permissions
@@ -32,3 +32,5 @@
 - [X] hit Enter on empty income/expense list causes crash
 - [X] the screenshots in the README aren't displaying in pypi.org/project/moomoolah
       we should replace the local URLs by Github absolute URLs when building the package
+- [X] when modifying an entry, when user hits ENTER, it shouldn't save and close dialog,
+      and not trigger it again

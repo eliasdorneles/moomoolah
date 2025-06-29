@@ -581,7 +581,7 @@ class TestConfirmationModal:
             # Test that arrow keys navigate between buttons
             await pilot.press("right")
             await pilot.pause()
-            
+
             await pilot.press("left")
             await pilot.pause()
 
@@ -952,7 +952,6 @@ class TestEntryTypeModal:
     async def test_entry_type_modal_expense_button(self, basic_temp_state_file):
         """Test that clicking 'Expense' returns EntryType.EXPENSE."""
         from moomoolah.budget_app import EntryTypeModal
-        from moomoolah.state import EntryType
 
         app = BudgetApp(state_file=basic_temp_state_file)
         async with app.run_test() as pilot:
@@ -1026,7 +1025,7 @@ class TestEntryTypeModal:
             # Test that arrow keys navigate between buttons
             await pilot.press("right")
             await pilot.pause()
-            
+
             await pilot.press("left")
             await pilot.pause()
 
@@ -1036,3 +1035,71 @@ class TestEntryTypeModal:
 
             # Modal should be dismissed, back to main screen
             assert isinstance(app.screen, MainScreen)
+
+
+class TestDoubleEnterBugFix:
+    """Test for the double ENTER key trigger bug fix."""
+
+    @pytest.fixture
+    def temp_state_file(self):
+        """Create a temporary state file for testing."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            state = FinancialState(
+                expenses=[],
+                incomes=[],
+            )
+            f.write(state.model_dump_json())
+            f.flush()
+            yield f.name
+
+    async def test_modify_entry_enter_key_no_double_trigger(self, temp_state_file):
+        """Test that pressing ENTER in modify entry dialog doesn't double-trigger save."""
+        from moomoolah.budget_app import UpdateEntryModal
+        from moomoolah.state import (
+            FinancialEntry,
+            EntryType,
+            Recurrence,
+            RecurrenceType,
+        )
+        from datetime import date
+
+        app = BudgetApp(state_file=temp_state_file)
+
+        # Create a sample entry to modify
+        entry = FinancialEntry(
+            description="Test Entry",
+            amount=100,
+            category="Test",
+            type=EntryType.EXPENSE,
+            recurrence=Recurrence(
+                type=RecurrenceType.ONE_TIME, start_date=date(2024, 1, 1), every=1
+            ),
+        )
+
+        # Create the modal directly
+        modal = UpdateEntryModal(entry, "Test Modal")
+
+        async with app.run_test(size=(120, 50)) as pilot:
+            # Push the modal onto the screen
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Mock the dismiss method to count how many times it's called
+            original_dismiss = modal.dismiss
+            dismiss_count = 0
+
+            def mock_dismiss(result=None):
+                nonlocal dismiss_count
+                dismiss_count += 1
+                return original_dismiss(result)
+
+            modal.dismiss = mock_dismiss
+
+            # Press ENTER - this should only trigger save once
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Check that dismiss was called exactly once (not double-triggered)
+            assert dismiss_count == 1, (
+                f"Expected dismiss to be called once, but was called {dismiss_count} times"
+            )

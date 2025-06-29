@@ -175,8 +175,13 @@ class UpdateEntryModal(ModalScreen):
     def on_key(self, event: Key) -> None:
         """Handle key events, specifically ENTER to save."""
         if event.key == "enter":
-            event.prevent_default()
-            self.on_save(None)
+            # Only handle ENTER if the focused widget is not a button
+            # This prevents double-triggering when the Save button has focus
+            focused_widget = self.app.focused
+            if focused_widget and focused_widget.id != "entry_save":
+                event.prevent_default()
+                event.stop()
+                self.on_save(None)
 
 
 class ManageEntriesScreen(Screen[list[FinancialEntry]]):
