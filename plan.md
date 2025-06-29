@@ -14,12 +14,12 @@
 - [x] in the add/update dialogs, hit the primary button when user press ENTER
 - [x] in the modal dialog, let user use left/right arrow keys to switch focus
   to left/right
+- [x] do not require state file be given as argument -- if not given, create a
+  file in the proper default user dir (follow freedesktop specs), using
+  appropriate private permissions
 
 ## Planned Features
 
-- [ ] do not require state file be given as argument -- if not given, create a
-  file in the proper default user dir (follow freedesktop specs), using
-  appropriate private permissions
 - [ ] view details for a given month forecast, detailing expenses per category
 - [ ] fix forecast calculation to take into account start_date and end_date
 - [ ] add special function for "Savings" category: accumulate it on forecast
