@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from textual.widgets import DataTable
+from textual.widgets import DataTable, Label
 
 from moomoolah.budget_app import BudgetApp, MainScreen
 from moomoolah.state import (
@@ -1035,6 +1035,412 @@ class TestEntryTypeModal:
 
             # Modal should be dismissed, back to main screen
             assert isinstance(app.screen, MainScreen)
+
+
+class TestMonthDetailModal:
+    """Test the MonthDetailModal functionality."""
+
+    @pytest.fixture
+    def sample_state_with_varied_entries(self):
+        """Create a FinancialState with various entries for testing month details."""
+        state = FinancialState()
+
+        # Income entries
+        state.add_entry(
+            FinancialEntry(
+                amount=Decimal("3000"),
+                description="Salary",
+                type=EntryType.INCOME,
+                category="Job",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 1),
+                ),
+            )
+        )
+        state.add_entry(
+            FinancialEntry(
+                amount=Decimal("500"),
+                description="Freelance",
+                type=EntryType.INCOME,
+                category="Side Work",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 15),
+                ),
+            )
+        )
+
+        # Expense entries
+        state.add_entry(
+            FinancialEntry(
+                amount=Decimal("1200"),
+                description="Rent",
+                type=EntryType.EXPENSE,
+                category="Housing",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 5),
+                ),
+            )
+        )
+        state.add_entry(
+            FinancialEntry(
+                amount=Decimal("400"),
+                description="Groceries",
+                type=EntryType.EXPENSE,
+                category="Food",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 10),
+                ),
+            )
+        )
+        state.add_entry(
+            FinancialEntry(
+                amount=Decimal("200"),
+                description="Phone",
+                type=EntryType.EXPENSE,
+                category="Utilities",
+                recurrence=Recurrence(
+                    type=RecurrenceType.MONTHLY,
+                    start_date=date(2024, 1, 20),
+                ),
+            )
+        )
+
+        return state
+
+    async def test_month_detail_modal_displays_summary_and_details(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that MonthDetailModal displays both summary and detail views."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Create modal for January 2024
+            test_month = date(2024, 1, 1)
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Check that summary table exists and has data
+            summary_table = app.screen.query_one("#month_summary_table", DataTable)
+            assert summary_table is not None
+            assert summary_table.row_count > 0
+
+            # Check that details table exists and has data
+            details_table = app.screen.query_one("#month_details_table", DataTable)
+            assert details_table is not None
+            assert details_table.row_count > 0
+
+    async def test_month_detail_modal_summary_shows_categories(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that summary table shows expenses and income by category."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            test_month = date(2024, 1, 1)
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            summary_table = app.screen.query_one("#month_summary_table", DataTable)
+
+            # Should have categories: Job, Side Work, Housing, Food, Utilities
+            assert summary_table.row_count == 5
+
+            # Get all category names from first column
+            categories = []
+            for row_index in range(summary_table.row_count):
+                row_cells = list(summary_table.get_row_at(row_index))
+                # First column is category name (string)
+                category_value = row_cells[0]
+                if hasattr(category_value, "plain"):
+                    categories.append(category_value.plain)
+                else:
+                    categories.append(str(category_value))
+
+            assert "Job" in categories
+            assert "Side Work" in categories
+            assert "Housing" in categories
+            assert "Food" in categories
+            assert "Utilities" in categories
+
+    async def test_month_detail_modal_details_shows_individual_entries(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that details table shows individual entries with descriptions."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            test_month = date(2024, 1, 1)
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            details_table = app.screen.query_one("#month_details_table", DataTable)
+
+            # Should have 5 entries total
+            assert details_table.row_count == 5
+
+            # Get all descriptions from the details table
+            descriptions = []
+            for row_index in range(details_table.row_count):
+                row_cells = list(details_table.get_row_at(row_index))
+                # First column is description (string)
+                desc_value = row_cells[0]
+                if hasattr(desc_value, "plain"):
+                    descriptions.append(desc_value.plain)
+                else:
+                    descriptions.append(str(desc_value))
+
+            assert "Salary" in descriptions
+            assert "Freelance" in descriptions
+            assert "Rent" in descriptions
+            assert "Groceries" in descriptions
+            assert "Phone" in descriptions
+
+    async def test_month_detail_modal_escape_closes_modal(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that escape key closes the month detail modal."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            test_month = date(2024, 1, 1)
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Press escape to close modal
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Should be back on main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_month_detail_modal_close_button_closes_modal(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that clicking the close button closes the month detail modal."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            test_month = date(2024, 1, 1)
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Click close button (now an X button in header)
+            await pilot.click("#close_button")
+            await pilot.pause()
+
+            # Should be back on main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_month_detail_modal_displays_totals(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that modal displays calculated totals."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            test_month = date(2024, 1, 1)
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Check that totals section exists and has content
+            totals_label = app.screen.query_one("#month_totals", Label)
+            totals_text = str(totals_label.renderable)
+
+            # Should contain totals information
+            assert "Total Income:" in totals_text
+            assert "Total Expenses:" in totals_text
+            assert "Balance:" in totals_text
+
+    async def test_month_detail_modal_displays_month_title(
+        self, sample_state_with_varied_entries, basic_temp_state_file
+    ):
+        """Test that modal displays the correct month in title/label."""
+        from moomoolah.budget_app import MonthDetailModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            test_month = date(2024, 3, 1)  # March 2024
+            modal = MonthDetailModal(
+                month=test_month, state=sample_state_with_varied_entries
+            )
+
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Check that month is displayed somewhere (could be in title or label)
+            # This is a basic test to ensure month context is visible
+            month_label = app.screen.query_one("#month_title", Label)
+            label_text = month_label.renderable
+            if hasattr(label_text, "plain"):
+                assert "March 2024" in label_text.plain
+            else:
+                assert "March 2024" in str(label_text)
+
+
+class TestMainScreenRowSelection:
+    """Test MainScreen row selection functionality for forecast and history tables."""
+
+    @pytest.fixture
+    def temp_state_file(self):
+        """Create a temporary state file for testing."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            # Create a basic state with some test data
+            state = FinancialState()
+            state.add_entry(
+                FinancialEntry(
+                    amount=Decimal("2000"),
+                    description="Test Salary",
+                    type=EntryType.INCOME,
+                    category="Income",
+                    recurrence=Recurrence(
+                        type=RecurrenceType.MONTHLY,
+                        start_date=date(2024, 1, 1),
+                    ),
+                )
+            )
+            state.add_entry(
+                FinancialEntry(
+                    amount=Decimal("800"),
+                    description="Test Rent",
+                    type=EntryType.EXPENSE,
+                    category="Housing",
+                    recurrence=Recurrence(
+                        type=RecurrenceType.MONTHLY,
+                        start_date=date(2024, 1, 1),
+                    ),
+                )
+            )
+            state.to_json_file(f.name)
+            yield f.name
+
+    async def test_forecast_table_row_selection_opens_month_detail(
+        self, temp_state_file
+    ):
+        """Test that selecting a row in forecast table opens MonthDetailModal."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Get forecast table and click on first row
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            assert forecast_table.cursor_type == "row"  # Should be selectable
+
+            # Click on first row to select it
+            await pilot.click("#forecast_table")
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Should open MonthDetailModal
+            assert app.screen.__class__.__name__ == "MonthDetailModal"
+
+    async def test_history_table_row_selection_opens_month_detail(
+        self, temp_state_file
+    ):
+        """Test that selecting a row in history table opens MonthDetailModal."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Get history table and click on first row
+            history_table = app.screen.query_one("#history_table", DataTable)
+            assert history_table.cursor_type == "row"  # Should be selectable
+
+            # Click on first row to select it
+            await pilot.click("#history_table")
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Should open MonthDetailModal
+            assert app.screen.__class__.__name__ == "MonthDetailModal"
+
+    async def test_forecast_table_has_cursor_type_row(self, temp_state_file):
+        """Test that forecast table is configured with cursor_type='row'."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            forecast_table = app.screen.query_one("#forecast_table", DataTable)
+            assert forecast_table.cursor_type == "row"
+
+    async def test_history_table_has_cursor_type_row(self, temp_state_file):
+        """Test that history table is configured with cursor_type='row'."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            history_table = app.screen.query_one("#history_table", DataTable)
+            assert history_table.cursor_type == "row"
+
+    async def test_month_detail_modal_opens_with_correct_month_data(
+        self, temp_state_file
+    ):
+        """Test that MonthDetailModal opens with data for the selected month."""
+        app = BudgetApp(state_file=temp_state_file)
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+
+            # Select first row of forecast table (should be current month)
+            await pilot.click("#forecast_table")
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Should be on MonthDetailModal now
+            assert app.screen.__class__.__name__ == "MonthDetailModal"
+
+            # Check that modal has the expected data tables
+            summary_table = app.screen.query_one("#month_summary_table", DataTable)
+            details_table = app.screen.query_one("#month_details_table", DataTable)
+
+            assert summary_table is not None
+            assert details_table is not None
 
 
 class TestDoubleEnterBugFix:

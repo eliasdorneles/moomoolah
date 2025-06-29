@@ -20,7 +20,18 @@
 
 ## Planned Features
 
-- [ ] view details for a given month forecast, detailing expenses per category
+- [X] view details for a given month forecast, detailing expenses per category
+  **Product Specification:**
+  - [X] User interaction: Click/select month row in forecast or history table and press Enter
+  - [X] Display format: Modal dialog with two views
+    - [X] Summary view: Categories with totals (e.g., "Groceries: €250", "Salary: €3000")
+    - [X] Individual entries view: All entries for that month with descriptions
+  - [X] Visual design: 
+    - [X] Expenses displayed in red text
+    - [X] Income displayed in green text
+    - [X] Both expenses and income in same table/view
+  - [X] Scope: Works for both future forecast months and historical months
+  - [X] Interaction mode: Read-only (view only, no editing from this modal)
 - [ ] fix forecast calculation to take into account start_date and end_date
 - [ ] add special function for "Savings" category: accumulate it on forecast
     => the idea is to be able to forecast:

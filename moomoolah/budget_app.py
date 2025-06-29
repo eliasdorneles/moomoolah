@@ -6,7 +6,7 @@ from decimal import Decimal
 from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
-from textual.containers import Grid
+from textual.containers import Grid, Container, Horizontal
 from textual.events import Key
 from textual.screen import ModalScreen, Screen
 from textual.widgets import (
@@ -184,6 +184,113 @@ class UpdateEntryModal(ModalScreen):
                 self.on_save(None)
 
 
+class MonthDetailModal(ModalScreen):
+    """Modal displaying detailed breakdown of a month's financial data."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Close")]
+
+    def __init__(self, month: date, state: FinancialState, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.month = month
+        self.state = state
+        self.forecast = state.get_monthly_forecast(month)
+        self.entries = state.get_entries_for_month(month)
+
+    def compose(self) -> ComposeResult:
+        month_str = self.month.strftime("%B %Y")
+        with Container():
+            # Header with title and close button
+            with Horizontal(classes="modal-header"):
+                yield Label(
+                    f"Details for {month_str}", id="month_title", classes="modal-title"
+                )
+                yield Button("×", id="close_button", classes="close-x-button")
+
+            yield Label("Summary by Category", classes="section-title")
+            yield DataTable(id="month_summary_table", cursor_type="none")
+
+            # Add totals section
+            yield Label("", id="month_totals", classes="totals-section")
+
+            yield Label("Individual Entries", classes="section-title")
+            yield DataTable(id="month_details_table", cursor_type="none")
+
+    def on_mount(self) -> None:
+        self._populate_summary_table()
+        self._populate_totals()
+        self._populate_details_table()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "close_button":
+            self.app.pop_screen()
+
+    def _populate_totals(self) -> None:
+        """Populate the totals section with calculated summary."""
+        totals_label = self.query_one("#month_totals", Label)
+
+        total_income = self.forecast.total_income
+        total_expenses = self.forecast.total_expenses
+        balance = self.forecast.balance
+
+        # Create a formatted totals display
+        balance_color = "green" if balance >= 0 else "red"
+        totals_text = (
+            f"Total Income: [green]€{total_income}[/green]  |  "
+            f"Total Expenses: [red]€{total_expenses}[/red]  |  "
+            f"Balance: [{balance_color}]€{balance}[/{balance_color}]"
+        )
+
+        totals_label.update(totals_text)
+
+    def _populate_summary_table(self) -> None:
+        """Populate the summary table with category totals."""
+        summary_table = self.query_one("#month_summary_table", DataTable)
+        summary_table.add_columns("Category", "Type", "Amount")
+
+        # Combine expenses and income by category
+        categories_data = []
+
+        # Add expense categories
+        for category, amount in self.forecast.expenses_by_category.items():
+            categories_data.append((category, "Expense", amount, "red"))
+
+        # Add income categories
+        for category, amount in self.forecast.income_by_category.items():
+            categories_data.append((category, "Income", amount, "green"))
+
+        # Sort by category name for consistent display
+        categories_data.sort(key=lambda x: x[0])
+
+        for category, entry_type, amount, color_style in categories_data:
+            summary_table.add_row(
+                category,
+                Text(entry_type, style=color_style),
+                Text(f"€{amount}", style=f"{color_style} bold", justify="right"),
+            )
+
+    def _populate_details_table(self) -> None:
+        """Populate the details table with individual entries."""
+        details_table = self.query_one("#month_details_table", DataTable)
+        details_table.add_columns("Description", "Category", "Type", "Amount")
+
+        # Sort entries by type (income first, then expenses) and then by description
+        sorted_entries = sorted(
+            self.entries, key=lambda e: (e.type.value, e.description)
+        )
+
+        for entry in sorted_entries:
+            color_style = "green" if entry.type == EntryType.INCOME else "red"
+            type_text = "Income" if entry.type == EntryType.INCOME else "Expense"
+
+            details_table.add_row(
+                entry.description,
+                entry.category,
+                Text(type_text, style=color_style),
+                Text(f"€{entry.amount}", style=f"{color_style} bold", justify="right"),
+            )
+
+
 class ManageEntriesScreen(Screen[list[FinancialEntry]]):
     BINDINGS = [
         ("backspace", "back", "Back"),
@@ -351,15 +458,40 @@ class MainScreen(Screen):
             # Refresh the forecast table
             self._sync_table()
 
+    @work
+    @on(DataTable.RowSelected, "#forecast_table")
+    async def on_forecast_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection in forecast table."""
+        # Get the month from the selected row
+        forecast_data = list(self.state.get_forecast_for_next_n_months(12).items())
+        if event.cursor_row < len(forecast_data):
+            selected_month, _ = forecast_data[event.cursor_row]
+            await self.app.push_screen_wait(
+                MonthDetailModal(selected_month, self.state)
+            )
+
+    @work
+    @on(DataTable.RowSelected, "#history_table")
+    async def on_history_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection in history table."""
+        # Get the month from the selected row
+        history_data = list(self.state.get_forecast_for_previous_n_months(3).items())
+        history_data.reverse()  # Same ordering as in _sync_table
+        if event.cursor_row < len(history_data):
+            selected_month, _ = history_data[event.cursor_row]
+            await self.app.push_screen_wait(
+                MonthDetailModal(selected_month, self.state)
+            )
+
     def compose(self) -> ComposeResult:
         # TODO: if state has no entries, invite user to create a new one
         # TODO: if state has entries, display the forecast for the next months,
         #       with option to manage entries
         yield Header()
         yield Label("FORECAST FOR NEXT 12 MONTHS", classes="forecast-title")
-        yield DataTable(id="forecast_table", cursor_type="none")
+        yield DataTable(id="forecast_table", cursor_type="row")
         yield Label("PREVIOUS 3 MONTHS", classes="history-title")
-        yield DataTable(id="history_table", cursor_type="none")
+        yield DataTable(id="history_table", cursor_type="row")
         yield Footer()
 
     def on_mount(self) -> None:

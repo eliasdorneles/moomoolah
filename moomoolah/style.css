@@ -67,3 +67,60 @@ UpdateEntryModal Grid Label {
 UpdateEntryModal RadioSet {
   width: 100%;
 }
+
+MonthDetailModal {
+  align: center middle;
+}
+
+MonthDetailModal > Container {
+  border: outer $primary;
+  background: $surface;
+  padding: 1 2;
+  width: 80;
+  height: 32;
+}
+
+MonthDetailModal .modal-title {
+  color: $primary;
+  text-style: bold;
+  text-align: center;
+  padding: 1;
+  width: 1fr;
+}
+
+MonthDetailModal .section-title {
+  color: $accent;
+  text-style: bold;
+  margin-top: 1;
+  margin-bottom: 1;
+  text-align: center;
+}
+
+MonthDetailModal DataTable {
+  margin-bottom: 1;
+  max-height: 10;
+  scrollbar-gutter: stable;
+}
+
+MonthDetailModal .totals-section {
+  background: $surface-lighten-1;
+  border: solid $primary-lighten-2;
+  padding: 1;
+  margin: 1 0;
+  text-align: center;
+  text-style: bold;
+}
+
+MonthDetailModal .close-x-button {
+  width: 5;
+  height: 3;
+  min-width: 5;
+  max-width: 5;
+  background: $error-lighten-1;
+  color: $surface;
+  text-style: bold;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  border: none;
+}

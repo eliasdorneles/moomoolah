@@ -274,3 +274,106 @@ def test_financial_state_to_json_file_sets_correct_permissions():
         # Clean up
         if os.path.exists(temp_path):
             os.unlink(temp_path)
+
+
+def test_financial_state__get_entries_for_month():
+    """Test getting individual entries that occur in a specific month."""
+    state = FinancialState()
+
+    # Add income entries
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("1000"),
+            description="Salary",
+            type=EntryType.INCOME,
+            category="Job",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2024, 1, 1),
+            ),
+        )
+    )
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("500"),
+            description="Freelance",
+            type=EntryType.INCOME,
+            category="Side Job",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2024, 2, 15),
+                every=2,  # Every 2 months starting February
+            ),
+        )
+    )
+
+    # Add expense entries
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("800"),
+            description="Rent",
+            type=EntryType.EXPENSE,
+            category="Housing",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2024, 1, 5),
+            ),
+        )
+    )
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("100"),
+            description="Groceries",
+            type=EntryType.EXPENSE,
+            category="Food",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2024, 1, 15),
+            ),
+        )
+    )
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("200"),
+            description="Vacation",
+            type=EntryType.EXPENSE,
+            category="Travel",
+            recurrence=Recurrence(
+                type=RecurrenceType.ONE_TIME,
+                start_date=date(2024, 3, 10),
+            ),
+        )
+    )
+
+    # Test February 2024 - should have salary, freelance, rent, groceries
+    february_entries = state.get_entries_for_month(date(2024, 2, 1))
+    february_descriptions = [entry.description for entry in february_entries]
+
+    assert len(february_entries) == 4
+    assert "Salary" in february_descriptions
+    assert "Freelance" in february_descriptions  # Every 2 months starting Feb
+    assert "Rent" in february_descriptions
+    assert "Groceries" in february_descriptions
+    assert "Vacation" not in february_descriptions  # One-time in March
+
+    # Test March 2024 - should have salary, rent, groceries, vacation (no freelance)
+    march_entries = state.get_entries_for_month(date(2024, 3, 1))
+    march_descriptions = [entry.description for entry in march_entries]
+
+    assert len(march_entries) == 4
+    assert "Salary" in march_descriptions
+    assert "Freelance" not in march_descriptions  # Not every month
+    assert "Rent" in march_descriptions
+    assert "Groceries" in march_descriptions
+    assert "Vacation" in march_descriptions  # One-time in March
+
+    # Test April 2024 - should have salary, freelance, rent, groceries (no vacation)
+    april_entries = state.get_entries_for_month(date(2024, 4, 1))
+    april_descriptions = [entry.description for entry in april_entries]
+
+    assert len(april_entries) == 4
+    assert "Salary" in april_descriptions
+    assert "Freelance" in april_descriptions  # Every 2 months (Feb, Apr, Jun...)
+    assert "Rent" in april_descriptions
+    assert "Groceries" in april_descriptions
+    assert "Vacation" not in april_descriptions  # One-time in March only

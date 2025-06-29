@@ -171,6 +171,14 @@ class FinancialState(BaseModel):
             forecast[month] = self.get_monthly_forecast(month)
         return forecast
 
+    def get_entries_for_month(self, month: date) -> list[FinancialEntry]:
+        """Get all individual financial entries that occur in a specific month."""
+        entries = []
+        for entry in self.income_entries + self.expense_entries:
+            if entry.will_occur_on_month(month):
+                entries.append(entry)
+        return entries
+
     @classmethod
     def from_json_file(cls, file_path: str) -> "FinancialState":
         with open(file_path, "r") as file:
