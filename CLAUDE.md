@@ -3,7 +3,7 @@
 ## Commit Message Preferences
 - Use Conventional Commits format: `type(scope): description`
 - Common types: feat, fix, docs, style, refactor, test, chore
-- Do not include "Generated with Claude Code" footer in commit messages
+- NEVER use the "Generated with Claude Code" footer
 - Keep commit messages concise and descriptive
 
 ## Project Context
