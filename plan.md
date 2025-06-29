@@ -33,10 +33,17 @@
   - [X] Scope: Works for both future forecast months and historical months
   - [X] Interaction mode: Read-only (view only, no editing from this modal)
 - [ ] fix forecast calculation to take into account start_date and end_date
-- [ ] add special function for "Savings" category: accumulate it on forecast
-    => the idea is to be able to forecast:
-        - "will i have enough to pay for the upcoming expenses?"
-        - "can i afford to spend on something, like a long distance trip?"
+- [ ] add enhanced accumulating savings categories functionality
+  **Product Specification:**
+  - [ ] Auto-detection: Categories containing "fund", "savings", "emergency" automatically accumulate
+  - [ ] Category management: Provide interface to manually mark any expense category as accumulating/non-accumulating
+  - [ ] Display toggle: Ctrl+T shortcut in main screen to show/hide accumulation view
+  - [ ] Enhanced forecast table with accumulation view:
+    - [ ] "Accumulated Savings" column showing running total across all accumulating categories
+    - [ ] "Available Balance" column showing: Income - Expenses + Accumulated Savings
+  - [ ] Integration: Works with existing future expense planning (one-time expenses)
+  - [ ] Behavior: Accumulating categories treated as regular expenses for monthly budgets, but build up savings total over time
+  **Benefits:** Answer questions like "will I have enough for upcoming expenses?" and "can I afford this trip?"
 
 ## Bugs to fix
 
