@@ -34,10 +34,10 @@ get_new_version() {
 # Prepare release
 prepare_release() {
     log_info "Preparing release..."
-    
+
     local new_version
     local bump_type
-    
+
     # Determine version bump strategy
     if [ -n "$VERSION" ]; then
         new_version="$VERSION"
@@ -50,25 +50,33 @@ prepare_release() {
         new_version=$(uv run git-cliff --bumped-version | sed 's/^v//')
         log_info "Auto-detected version: $new_version"
     fi
-    
+
     # Update version
     log_info "Updating version to $new_version..."
     uv run bump-my-version bump --new-version "$new_version"
-    
+
     # Generate changelog
     log_info "Generating changelog..."
     uv run git-cliff --tag "v$new_version" -o CHANGELOG.md
-    
+
     # Create release commit and tag
     log_info "Creating release commit and tag..."
     git add pyproject.toml CHANGELOG.md uv.lock
     git commit -m "chore: release v$new_version"
     git tag -a "v$new_version" -m "Release v$new_version"
-    
+
+    # Process README for PyPI (replace local image URLs with GitHub URLs)
+    log_info "Processing README for PyPI..."
+    cp README.md README.md.backup
+    uv run python scripts/process_readme.py "$new_version"
+
     # Build package
     log_info "Building package..."
     uv build
-    
+
+    # Restore original README
+    mv README.md.backup README.md
+
     # Success message
     echo ""
     log_success "✅ Release v$new_version prepared!"
@@ -80,20 +88,20 @@ prepare_release() {
 # Reset release preparation
 reset_release() {
     log_info "Checking if last commit is a release commit..."
-    
+
     local last_commit_msg
     last_commit_msg=$(git log -1 --pretty=format:"%s")
-    
+
     if echo "$last_commit_msg" | grep -q "^chore: release v"; then
         local release_tag
         release_tag=$(echo "$last_commit_msg" | sed 's/chore: release //')
-        
+
         log_info "Found release commit: $release_tag"
         log_info "Removing release commit and tag..."
-        
+
         git reset --hard HEAD~1
         git tag -d "$release_tag" 2>/dev/null || true
-        
+
         log_success "✅ Release preparation reset."
     else
         log_error "❌ Last commit is not a release commit. Nothing to reset."
@@ -119,51 +127,51 @@ is_on_main_branch() {
 # Publish release
 publish_release() {
     log_info "Verifying release is ready..."
-    
+
     # Check that last commit is a release commit
     if ! is_release_commit; then
         log_error "❌ Last commit is not a release commit. Run 'make prepare-release' first."
         exit 1
     fi
-    
+
     # Check that working directory is clean
     if ! is_working_directory_clean; then
         log_error "❌ Working directory is not clean. Commit or stash changes first."
         exit 1
     fi
-    
+
     # Check that we're on main branch
     if ! is_on_main_branch; then
         log_error "❌ Not on main branch. Switch to main branch first."
         exit 1
     fi
-    
+
     # Extract release version
     local release_version
     release_version=$(git log -1 --pretty=format:"%s" | sed 's/chore: release v//')
-    
+
     log_info "Publishing release v$release_version..."
-    
+
     # Clean and rebuild package
     log_info "Cleaning and rebuilding package..."
     rm -rf dist/
     uv build
-    
+
     # Publish to PyPI
     log_info "Publishing to PyPI..."
     uv publish
-    
+
     # Push to GitHub
     log_info "Pushing to GitHub..."
     git push origin main
     git push origin "v$release_version"
-    
+
     # Create GitHub release
     log_info "Creating GitHub release..."
     local changelog_content
     changelog_content=$(uv run git-cliff --tag "v$release_version" --strip header)
     gh release create "v$release_version" --title "Release v$release_version" --notes "$changelog_content"
-    
+
     # Success message
     echo ""
     log_success "🎉 Release v$release_version published successfully!"

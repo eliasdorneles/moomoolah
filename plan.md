@@ -30,3 +30,5 @@
 ## Bugs to fix
 
 - [X] hit Enter on empty income/expense list causes crash
+- [X] the screenshots in the README aren't displaying in pypi.org/project/moomoolah
+      we should replace the local URLs by Github absolute URLs when building the package

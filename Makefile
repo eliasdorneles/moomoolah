@@ -36,15 +36,15 @@ install:  ## Install dependencies
 
 .PHONY: release
 release:  ## Prepare a new release (VERSION=x.y.z or BUMP=major/minor/patch)
-	@VERSION=$(VERSION) BUMP=$(BUMP) ./release.sh prepare
+	@VERSION=$(VERSION) BUMP=$(BUMP) ./scripts/release.sh prepare
 
 .PHONY: reset-release
 reset-release:  ## Reset the last release preparation
-	@./release.sh reset
+	@./scripts/release.sh reset
 
 .PHONY: publish-release
 publish-release:  ## Publish the prepared release to PyPI and GitHub
-	@./release.sh publish
+	@./scripts/release.sh publish
 
 # Implements this pattern for autodocumenting Makefiles:
 # https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
