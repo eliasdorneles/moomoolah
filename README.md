@@ -11,7 +11,11 @@ A terminal-based personal budget planning application built with Python and Text
 
 ## Screenshots
 
+Main screen:
+
 [![Main Screen](./demo_main_screen.svg)](./demo_main_screen.svg)
+
+Adding an expense:
 
 [![Add Expense](./demo_add_expense.svg)](./demo_add_expense.svg)
 
