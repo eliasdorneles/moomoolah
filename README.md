@@ -2,6 +2,9 @@
 
 A terminal-based personal budget planning application built with Python and Textual.
 
+Your data is stored locally in a JSON file, keeping your financial information
+private and accessible offline.
+
 ## Features
 
 - **12-month forecast view** - Shows projected expenses, income, and balance for the next 12 months
@@ -19,24 +22,21 @@ Adding an expense:
 
 [![Add Expense](./demo_add_expense.svg)](./demo_add_expense.svg)
 
-## Installation & Setup
+## Installation
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+Install MooMoolah using pip:
 
-1. Install uv if you haven't already:
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
+```bash
+pip install moomoolah
+```
 
-2. Install dependencies:
-   ```bash
-   uv sync
-   ```
+## Usage
 
-3. Run the application:
-   ```bash
-   uv run moomoolah <state_file.json>
-   ```
+Run the application with:
+
+```bash
+moomoolah <state_file.json>
+```
 
 The state file will be created if it doesn't exist.
 
@@ -61,12 +61,26 @@ Each entry includes:
 
 See [plan.md](plan.md) for current development roadmap and planned features.
 
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+
+### Setup
+
+1. Install uv if you haven't already:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+3. Run the application:
+   ```bash
+   uv run moomoolah <state_file.json>
+   ```
+
 ### Running Tests
 ```bash
 uv run pytest
-```
-
-### Development Dependencies
-```bash
-uv sync --dev
 ```

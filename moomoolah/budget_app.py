@@ -386,7 +386,7 @@ class MainScreen(Screen):
 
 
 class BudgetApp(App):
-    TITLE = "Personal Budget Planner"
+    TITLE = "MooMooLah - Personal Budget Planner"
     CSS_PATH = "style.css"
 
     BINDINGS = [
