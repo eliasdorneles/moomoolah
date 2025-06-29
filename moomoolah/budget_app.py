@@ -7,6 +7,7 @@ from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Grid
+from textual.events import Key
 from textual.screen import ModalScreen, Screen
 from textual.widgets import (
     Button,
@@ -69,6 +70,14 @@ class EntryTypeModal(ModalScreen[EntryType]):
     @on(Button.Pressed, "#add_income")
     def on_add_income(self) -> None:
         self.dismiss(EntryType.INCOME)
+
+    def on_key(self, event: Key) -> None:
+        if event.key == "left":
+            self.focus_previous()
+            event.prevent_default()
+        elif event.key == "right":
+            self.focus_next()
+            event.prevent_default()
 
 
 class UpdateEntryModal(ModalScreen):

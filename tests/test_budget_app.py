@@ -565,6 +565,33 @@ class TestConfirmationModal:
             # Modal should be dismissed, check that we're back to main screen
             assert isinstance(app.screen, MainScreen)
 
+    async def test_confirmation_modal_arrow_keys(self, basic_temp_state_file):
+        """Test that left/right arrow keys change focus between buttons."""
+        from moomoolah.widgets import ConfirmationModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = ConfirmationModal("Are you sure?")
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Test that arrow keys navigate between buttons
+            await pilot.press("right")
+            await pilot.pause()
+            
+            await pilot.press("left")
+            await pilot.pause()
+
+            # Press Enter on focused button (should be Yes button after left arrow)
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Modal should be dismissed, back to main screen
+            assert isinstance(app.screen, MainScreen)
+
 
 class TestUpdateEntryModal:
     """Test the UpdateEntryModal functionality."""
@@ -892,3 +919,95 @@ class TestUnsavedChanges:
                 assert isinstance(app.screen, MainScreen)
                 # Unsaved changes should still be marked
                 assert app.has_unsaved_changes
+
+
+class TestEntryTypeModal:
+    """Test the EntryTypeModal widget."""
+
+    async def test_entry_type_modal_expense_button(self, basic_temp_state_file):
+        """Test that clicking 'Expense' returns EntryType.EXPENSE."""
+        from moomoolah.budget_app import EntryTypeModal
+        from moomoolah.state import EntryType
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = EntryTypeModal()
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Click Expense button
+            await pilot.click("#add_expense")
+            await pilot.pause()
+
+            # Modal should be dismissed, check that we're back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_entry_type_modal_income_button(self, basic_temp_state_file):
+        """Test that clicking 'Income' returns EntryType.INCOME."""
+        from moomoolah.budget_app import EntryTypeModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = EntryTypeModal()
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Click Income button
+            await pilot.click("#add_income")
+            await pilot.pause()
+
+            # Modal should be dismissed, check that we're back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_entry_type_modal_escape_key(self, basic_temp_state_file):
+        """Test that escape key cancels the modal."""
+        from moomoolah.budget_app import EntryTypeModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = EntryTypeModal()
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Press escape to cancel
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Modal should be dismissed, check that we're back to main screen
+            assert isinstance(app.screen, MainScreen)
+
+    async def test_entry_type_modal_arrow_keys(self, basic_temp_state_file):
+        """Test that left/right arrow keys change focus between buttons."""
+        from moomoolah.budget_app import EntryTypeModal
+
+        app = BudgetApp(state_file=basic_temp_state_file)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modal = EntryTypeModal()
+
+            # Start the modal
+            app.push_screen(modal)
+            await pilot.pause()
+
+            # Test that arrow keys navigate between buttons
+            await pilot.press("right")
+            await pilot.pause()
+            
+            await pilot.press("left")
+            await pilot.pause()
+
+            # Press Enter on focused button (should be Expense button after left arrow)
+            await pilot.press("enter")
+            await pilot.pause()
+
+            # Modal should be dismissed, back to main screen
+            assert isinstance(app.screen, MainScreen)
