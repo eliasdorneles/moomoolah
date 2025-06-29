@@ -1,3 +1,5 @@
+import os
+import tempfile
 from datetime import date
 from decimal import Decimal
 
@@ -231,3 +233,44 @@ def test_financial_state__get_forecast_for_next_n_months():
         assert month_forecast.total_income == Decimal("2000")
         assert month_forecast.total_expenses == Decimal("800")
         assert month_forecast.balance == Decimal("1200")
+
+
+def test_financial_state_to_json_file_sets_correct_permissions():
+    """Test that to_json_file sets file permissions to 0o600 (owner read/write only)."""
+    state = FinancialState()
+    state.add_entry(
+        FinancialEntry(
+            amount=Decimal("1000"),
+            description="Test entry",
+            type=EntryType.INCOME,
+            category="Test",
+            recurrence=Recurrence(
+                type=RecurrenceType.MONTHLY,
+                start_date=date(2024, 1, 1),
+            ),
+        )
+    )
+
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
+        temp_path = temp_file.name
+
+    try:
+        # Save state to file
+        state.to_json_file(temp_path)
+
+        # Check file permissions
+        file_stats = os.stat(temp_path)
+        file_mode = file_stats.st_mode
+        # Extract the permission bits (last 3 octal digits)
+        permissions = oct(file_mode)[-3:]
+        assert permissions == "600", f"Expected 600 permissions, got {permissions}"
+
+        # Verify file content is valid JSON and can be loaded back
+        loaded_state = FinancialState.from_json_file(temp_path)
+        assert len(loaded_state.income_entries) == 1
+        assert loaded_state.income_entries[0].description == "Test entry"
+
+    finally:
+        # Clean up
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)

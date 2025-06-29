@@ -177,5 +177,9 @@ class FinancialState(BaseModel):
             return cls.model_validate_json(file.read())
 
     def to_json_file(self, file_path: str):
+        import os
+
         with open(file_path, "w") as file:
             file.write(self.model_dump_json(indent=2))
+        # Set file permissions to be readable/writable by owner only
+        os.chmod(file_path, 0o600)

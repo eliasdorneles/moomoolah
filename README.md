@@ -32,13 +32,17 @@ pip install moomoolah
 
 ## Usage
 
-Run the application with:
+Run the application with an optional state file:
 
 ```bash
-moomoolah <state_file.json>
+moomoolah [state_file.json]
 ```
 
-The state file will be created if it doesn't exist.
+If no state file is provided, MooMoolah will use a default location following the XDG Base Directory specification:
+- `$XDG_DATA_HOME/moomoolah/state.json` (if `XDG_DATA_HOME` is set)
+- `~/.local/share/moomoolah/state.json` (default on Linux/Unix)
+
+The state file will be created if it doesn't exist. State files are stored with restricted permissions (600) for security.
 
 ## Usage
 
@@ -77,6 +81,10 @@ This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 3. Run the application:
    ```bash
+   # With default state file location
+   uv run moomoolah
+
+   # Or with a specific state file
    uv run moomoolah <state_file.json>
    ```
 
