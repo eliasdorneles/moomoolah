@@ -5,8 +5,23 @@ description = "MooMoolah - Personal Budget Planner"
 authors = [
     {name = "Elias Dorneles", email = "elias.dorneles@hey.com"}
 ]
-license = {text = "Proprietary"}
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
+homepage = "https://github.com/eliasdorneles/moomoolah"
+repository = "https://github.com/eliasdorneles/moomoolah"
+keywords = ["budget", "personal-finance", "textual", "tui"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+]
 requires-python = ">=3.11"
 dependencies = [
     "textual>=0.52.1",
