@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-07-09
+
+### Documentation
+
+- Update plan for accumulating savings feature
+
+
+### Features
+
+- Make state file argument optional with XDG-compliant defaults
+
+- Add month detail view with category breakdown
+
+- Add support to config currency
+
+
+### Miscellaneous Tasks
+
+- Update plan
+
+
 ## [0.2.1] - 2025-06-29
 
 ### Bug Fixes
@@ -16,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Configure package build to include only necessary files
 
+- Release v0.2.1
+
 
 ### Refactor
 
@@ -26,39 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- Prevent crash when pressing Enter on empty entries list
+
 - Update tests
 
 
 ### Documentation
 
 - Update planned next features
-
-
-### Features
-
-- Add ENTER key support in add/update dialogs
-
-- Add arrow key navigation for modal dialogs ([#1](https://github.com/eliasdorneles/moomoolah/pull/1))
-
-- Add automated release workflow with version bumping
-
-
-### Miscellaneous Tasks
-
-- Update claude context
-
-- Update README and screenshots
-
-- Add Makefile with common development tasks
-
-- Release v0.2.0
-
-
-## [0.1.0] - 2025-06-29
-
-### Bug Fixes
-
-- Prevent crash when pressing Enter on empty entries list
 
 
 ### Features
@@ -71,12 +69,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Rename module to moomoolah and add entrypoint
 
+- Add ENTER key support in add/update dialogs
+
+- Add arrow key navigation for modal dialogs ([#1](https://github.com/eliasdorneles/moomoolah/pull/1))
+
+- Add automated release workflow with version bumping
+
 
 ### Miscellaneous Tasks
 
 - Add CLAUDE.md and ignore .claude directory
 
 - Add license and project metadata
+
+- Update claude context
+
+- Update README and screenshots
+
+- Add Makefile with common development tasks
+
+- Release v0.2.0
 
 
 ### Config

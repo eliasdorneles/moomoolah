@@ -1,6 +1,6 @@
 [project]
 name = "moomoolah"
-version = "0.2.1"
+version = "0.3.0"
 description = "MooMoolah - Personal Budget Planner"
 authors = [
     {name = "Elias Dorneles", email = "elias.dorneles@hey.com"}
@@ -76,7 +76,7 @@ dev = [
 asyncio_mode = "auto"
 
 [tool.bumpversion]
-current_version = "0.2.1"
+current_version = "0.3.0"
 commit = false
 tag = false
 
