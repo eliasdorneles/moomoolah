@@ -2,9 +2,78 @@ import enum
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
+from typing import NamedTuple
 
 from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, Field
+
+
+class CurrencyFormat(NamedTuple):
+    symbol: str
+    code: str
+    decimal_places: int
+    decimal_separator: str
+    thousands_separator: str
+
+
+CURRENCY_FORMATS = {
+    "EUR": CurrencyFormat("€", "EUR", 2, ".", ","),
+    "USD": CurrencyFormat("$", "USD", 2, ".", ","),
+    "GBP": CurrencyFormat("£", "GBP", 2, ".", ","),
+    "JPY": CurrencyFormat("¥", "JPY", 0, ".", ","),
+    "CAD": CurrencyFormat("C$", "CAD", 2, ".", ","),
+    "AUD": CurrencyFormat("A$", "AUD", 2, ".", ","),
+    "BRL": CurrencyFormat("R$", "BRL", 2, ",", "."),
+}
+
+
+def format_currency(amount: Decimal, currency_code: str) -> str:
+    """Format a decimal amount with the appropriate currency symbol and formatting."""
+    fmt = CURRENCY_FORMATS[currency_code]
+
+    # Round to appropriate decimal places
+    if fmt.decimal_places == 0:
+        amount = amount.quantize(Decimal("1"))
+    else:
+        amount = amount.quantize(Decimal("0.01"))
+
+    # Convert to string and split into integer and decimal parts
+    amount_str = str(amount)
+    if "." in amount_str:
+        integer_part, decimal_part = amount_str.split(".")
+    else:
+        integer_part, decimal_part = amount_str, ""
+
+    # Handle negative sign
+    negative_sign = ""
+    if integer_part.startswith("-"):
+        negative_sign = "-"
+        integer_part = integer_part[1:]
+
+    # Add thousands separators
+    if len(integer_part) > 3:
+        # Add thousands separator from right to left
+        formatted_integer = ""
+        for i, digit in enumerate(reversed(integer_part)):
+            if i > 0 and i % 3 == 0:
+                formatted_integer = fmt.thousands_separator + formatted_integer
+            formatted_integer = digit + formatted_integer
+        integer_part = formatted_integer
+
+    # Construct final formatted string
+    if fmt.decimal_places > 0 and decimal_part:
+        # Pad decimal part to required length
+        decimal_part = decimal_part.ljust(fmt.decimal_places, "0")
+        formatted_amount = (
+            f"{negative_sign}{integer_part}{fmt.decimal_separator}{decimal_part}"
+        )
+    elif fmt.decimal_places > 0:
+        # Add decimal separator with zeros
+        formatted_amount = f"{negative_sign}{integer_part}{fmt.decimal_separator}{'0' * fmt.decimal_places}"
+    else:
+        formatted_amount = f"{negative_sign}{integer_part}"
+
+    return f"{fmt.symbol}{formatted_amount}"
 
 
 def to_ordinal(n: int) -> str:
@@ -126,6 +195,7 @@ class FinancialState(BaseModel):
         EntryType.INCOME: [],
         EntryType.EXPENSE: [],
     }
+    currency_code: str = "EUR"
 
     @property
     def income_entries(self) -> list[FinancialEntry]:

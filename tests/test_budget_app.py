@@ -12,7 +12,21 @@ from moomoolah.state import (
     FinancialState,
     Recurrence,
     RecurrenceType,
+    CURRENCY_FORMATS,
 )
+
+
+def parse_currency_from_text(text: str, currency_code: str) -> Decimal:
+    """Parse currency value from text by removing the currency symbol and thousands separators."""
+    currency_format = CURRENCY_FORMATS[currency_code]
+    # Remove currency symbol
+    numeric_text = text.replace(currency_format.symbol, "")
+    # Remove thousands separators
+    numeric_text = numeric_text.replace(currency_format.thousands_separator, "")
+    # Handle decimal separator - convert to period if needed
+    if currency_format.decimal_separator != ".":
+        numeric_text = numeric_text.replace(currency_format.decimal_separator, ".")
+    return Decimal(numeric_text)
 
 
 @pytest.fixture
@@ -146,7 +160,9 @@ class TestBudgetApp:
             # Get first month's balance from the forecast table
             first_row_cells = list(forecast_table.get_row_at(0))
             initial_balance_text = first_row_cells[3].plain  # Balance column
-            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+            initial_balance = parse_currency_from_text(
+                initial_balance_text, app.state.currency_code
+            )
 
             # Navigate to expense management
             await pilot.press("e")
@@ -199,7 +215,9 @@ class TestBudgetApp:
             # Get the updated balance for the first month
             updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
             updated_balance_text = updated_first_row_cells[3].plain  # Balance column
-            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+            updated_balance = parse_currency_from_text(
+                updated_balance_text, app.state.currency_code
+            )
 
             # The balance should have decreased by 300 (the expense amount)
             expected_balance = initial_balance - Decimal("300")
@@ -217,7 +235,9 @@ class TestBudgetApp:
             forecast_table = app.screen.query_one("#forecast_table", DataTable)
             first_row_cells = list(forecast_table.get_row_at(0))
             initial_balance_text = first_row_cells[3].plain  # Balance column
-            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+            initial_balance = parse_currency_from_text(
+                initial_balance_text, app.state.currency_code
+            )
 
             # Press Insert to add entry from main screen
             await pilot.press("insert")
@@ -260,7 +280,9 @@ class TestBudgetApp:
             updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
             updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
             updated_balance_text = updated_first_row_cells[3].plain
-            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+            updated_balance = parse_currency_from_text(
+                updated_balance_text, app.state.currency_code
+            )
 
             # Balance should have decreased by 150
             expected_balance = initial_balance - Decimal("150")
@@ -278,7 +300,9 @@ class TestBudgetApp:
             forecast_table = app.screen.query_one("#forecast_table", DataTable)
             first_row_cells = list(forecast_table.get_row_at(0))
             initial_balance_text = first_row_cells[3].plain
-            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+            initial_balance = parse_currency_from_text(
+                initial_balance_text, app.state.currency_code
+            )
 
             # Press Insert to add entry from main screen
             await pilot.press("insert")
@@ -321,7 +345,9 @@ class TestBudgetApp:
             updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
             updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
             updated_balance_text = updated_first_row_cells[3].plain
-            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+            updated_balance = parse_currency_from_text(
+                updated_balance_text, app.state.currency_code
+            )
 
             # Balance should have increased by 500
             expected_balance = initial_balance + Decimal("500")
@@ -339,7 +365,9 @@ class TestBudgetApp:
             forecast_table = app.screen.query_one("#forecast_table", DataTable)
             first_row_cells = list(forecast_table.get_row_at(0))
             initial_balance_text = first_row_cells[3].plain
-            initial_balance = Decimal(initial_balance_text.replace("€", ""))
+            initial_balance = parse_currency_from_text(
+                initial_balance_text, app.state.currency_code
+            )
 
             # Press Insert to add entry from main screen
             await pilot.press("insert")
@@ -356,7 +384,9 @@ class TestBudgetApp:
             updated_forecast_table = app.screen.query_one("#forecast_table", DataTable)
             updated_first_row_cells = list(updated_forecast_table.get_row_at(0))
             updated_balance_text = updated_first_row_cells[3].plain
-            updated_balance = Decimal(updated_balance_text.replace("€", ""))
+            updated_balance = parse_currency_from_text(
+                updated_balance_text, app.state.currency_code
+            )
 
             # Balance should be unchanged
             assert updated_balance == initial_balance
@@ -446,7 +476,7 @@ class TestManageEntriesScreen:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses)
+            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses, app.state)
             app.push_screen(screen)
             await pilot.pause()
 
@@ -468,7 +498,7 @@ class TestManageEntriesScreen:
 
         async with app.run_test() as pilot:
             await pilot.pause()  # Wait for main screen
-            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses)
+            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses, app.state)
             app.push_screen(screen)
             await pilot.pause()
 
@@ -490,7 +520,7 @@ class TestManageEntriesScreen:
 
         async with app.run_test() as pilot:
             await pilot.pause()  # Wait for main screen
-            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses)
+            screen = ManageEntriesScreen(EntryType.EXPENSE, expenses, app.state)
             app.push_screen(screen)
             await pilot.pause()
 

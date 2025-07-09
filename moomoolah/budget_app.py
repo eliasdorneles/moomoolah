@@ -26,8 +26,53 @@ from moomoolah.state import (
     FinancialState,
     Recurrence,
     RecurrenceType,
+    format_currency,
+    CURRENCY_FORMATS,
 )
 from moomoolah.widgets import ConfirmationModal
+
+
+class CurrencySettingsModal(ModalScreen[str]):
+    """Modal for selecting currency settings."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Cancel")]
+
+    def __init__(self, current_currency: str) -> None:
+        super().__init__()
+        self.current_currency = current_currency
+
+    def compose(self) -> ComposeResult:
+        with Container(id="currency_settings_container"):
+            yield Label("Select Currency", id="currency_title")
+            with RadioSet(id="currency_radio_set"):
+                for currency_code, currency_format in CURRENCY_FORMATS.items():
+                    yield RadioButton(
+                        f"{currency_format.symbol} {currency_code}",
+                        value=currency_code == self.current_currency,
+                        id=f"currency_{currency_code}",
+                    )
+            with Horizontal():
+                yield Button("Cancel", id="cancel_button")
+                yield Button("OK", id="ok_button", variant="primary")
+
+    @on(Button.Pressed, "#cancel_button")
+    def on_cancel(self) -> None:
+        self.app.pop_screen()
+
+    @on(Button.Pressed, "#ok_button")
+    def on_ok(self) -> None:
+        radio_set = self.query_one(RadioSet)
+        selected_currency = None
+
+        for radio in radio_set.query(RadioButton):
+            if radio.value:
+                selected_currency = radio.id.replace("currency_", "")
+                break
+
+        if selected_currency:
+            self.dismiss(selected_currency)
+        else:
+            self.app.pop_screen()
 
 
 class EntryTypeModal(ModalScreen[EntryType]):
@@ -236,9 +281,9 @@ class MonthDetailModal(ModalScreen):
         # Create a formatted totals display
         balance_color = "green" if balance >= 0 else "red"
         totals_text = (
-            f"Total Income: [green]€{total_income}[/green]  |  "
-            f"Total Expenses: [red]€{total_expenses}[/red]  |  "
-            f"Balance: [{balance_color}]€{balance}[/{balance_color}]"
+            f"Total Income: [green]{format_currency(total_income, self.state.currency_code)}[/green]  |  "
+            f"Total Expenses: [red]{format_currency(total_expenses, self.state.currency_code)}[/red]  |  "
+            f"Balance: [{balance_color}]{format_currency(balance, self.state.currency_code)}[/{balance_color}]"
         )
 
         totals_label.update(totals_text)
@@ -266,7 +311,11 @@ class MonthDetailModal(ModalScreen):
             summary_table.add_row(
                 category,
                 Text(entry_type, style=color_style),
-                Text(f"€{amount}", style=f"{color_style} bold", justify="right"),
+                Text(
+                    format_currency(amount, self.state.currency_code),
+                    style=f"{color_style} bold",
+                    justify="right",
+                ),
             )
 
     def _populate_details_table(self) -> None:
@@ -287,7 +336,11 @@ class MonthDetailModal(ModalScreen):
                 entry.description,
                 entry.category,
                 Text(type_text, style=color_style),
-                Text(f"€{entry.amount}", style=f"{color_style} bold", justify="right"),
+                Text(
+                    format_currency(entry.amount, self.state.currency_code),
+                    style=f"{color_style} bold",
+                    justify="right",
+                ),
             )
 
 
@@ -300,7 +353,12 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
     ]
 
     def __init__(
-        self, entry_type: EntryType, entries: list[FinancialEntry], *args, **kwargs
+        self,
+        entry_type: EntryType,
+        entries: list[FinancialEntry],
+        state: FinancialState,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.sub_title: str = (
@@ -310,6 +368,7 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
         )
         self.entry_type = entry_type
         self.entries = entries
+        self.state = state
 
     def action_back(self) -> None:
         self.dismiss(self.entries)
@@ -342,7 +401,11 @@ class ManageEntriesScreen(Screen[list[FinancialEntry]]):
         for entry in entries:
             table.add_row(
                 entry.description,
-                Text(f"€{entry.amount}", style="bold", justify="right"),
+                Text(
+                    format_currency(entry.amount, self.state.currency_code),
+                    style="bold",
+                    justify="right",
+                ),
                 entry.recurrence.description,
                 entry.category,
             )
@@ -408,20 +471,25 @@ class MainScreen(Screen):
         self.state = state
 
     BINDINGS = [
-        ("e", "manage_expenses", "Manage Expenses"),
-        ("i", "manage_income", "Manage Income"),
+        ("e", "manage_expenses", "Expenses"),
+        ("i", "manage_income", "Income"),
         ("insert", "add_entry", "Add Entry"),
+        ("$", "currency_settings", "Currency"),
     ]
 
     @work
     async def action_manage_expenses(self) -> None:
-        screen = ManageEntriesScreen(EntryType.EXPENSE, self.state.expense_entries)
+        screen = ManageEntriesScreen(
+            EntryType.EXPENSE, self.state.expense_entries, self.state
+        )
         await self.app.push_screen_wait(screen)
         self._sync_table()
 
     @work
     async def action_manage_income(self) -> None:
-        screen = ManageEntriesScreen(EntryType.INCOME, self.state.income_entries)
+        screen = ManageEntriesScreen(
+            EntryType.INCOME, self.state.income_entries, self.state
+        )
         await self.app.push_screen_wait(screen)
         self._sync_table()
 
@@ -457,6 +525,20 @@ class MainScreen(Screen):
 
             # Refresh the forecast table
             self._sync_table()
+
+    @work
+    async def action_currency_settings(self) -> None:
+        """Show currency settings modal."""
+        screen = CurrencySettingsModal(self.state.currency_code)
+        result = await self.app.push_screen_wait(screen)
+        if result:
+            self.state.currency_code = result
+            self.app.mark_unsaved_changes()
+            self._sync_table()
+            self.notify(
+                f"Currency changed to {CURRENCY_FORMATS[result].symbol} {result}",
+                title="Currency Settings",
+            )
 
     @work
     @on(DataTable.RowSelected, "#forecast_table")
@@ -513,9 +595,21 @@ class MainScreen(Screen):
             )
             forecast_table.add_row(
                 month.strftime("%B %Y"),
-                Text(f"€{forecast.total_expenses}", style="bold", justify="right"),
-                Text(f"€{forecast.total_income}", style="bold", justify="right"),
-                Text(f"€{forecast.balance}", style=balance_style, justify="right"),
+                Text(
+                    format_currency(forecast.total_expenses, self.state.currency_code),
+                    style="bold",
+                    justify="right",
+                ),
+                Text(
+                    format_currency(forecast.total_income, self.state.currency_code),
+                    style="bold",
+                    justify="right",
+                ),
+                Text(
+                    format_currency(forecast.balance, self.state.currency_code),
+                    style=balance_style,
+                    justify="right",
+                ),
             )
 
         # Update history table
@@ -531,9 +625,21 @@ class MainScreen(Screen):
             )
             history_table.add_row(
                 month.strftime("%B %Y"),
-                Text(f"€{forecast.total_expenses}", style="bold", justify="right"),
-                Text(f"€{forecast.total_income}", style="bold", justify="right"),
-                Text(f"€{forecast.balance}", style=balance_style, justify="right"),
+                Text(
+                    format_currency(forecast.total_expenses, self.state.currency_code),
+                    style="bold",
+                    justify="right",
+                ),
+                Text(
+                    format_currency(forecast.total_income, self.state.currency_code),
+                    style="bold",
+                    justify="right",
+                ),
+                Text(
+                    format_currency(forecast.balance, self.state.currency_code),
+                    style=balance_style,
+                    justify="right",
+                ),
             )
 
 

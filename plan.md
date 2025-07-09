@@ -32,6 +32,7 @@
     - [X] Both expenses and income in same table/view
   - [X] Scope: Works for both future forecast months and historical months
   - [X] Interaction mode: Read-only (view only, no editing from this modal)
+- [x] add possibility to configure the currency, persisting it in the state file
 - [ ] fix forecast calculation to take into account start_date and end_date
 - [ ] add enhanced accumulating savings categories functionality
   **Product Specification:**
