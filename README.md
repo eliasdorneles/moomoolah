@@ -5,12 +5,32 @@ A terminal-based personal budget planning application built with Python and Text
 Your data is stored locally in a JSON file, keeping your financial information
 private and accessible offline.
 
+## Installation
+
+Install MooMoolah using pip:
+
+```bash
+pip install moomoolah
+```
+
+## Why?
+
+I wanted a simple way to manage my monthly budget, and I got tired of trying to
+bend Google Sheets to do what I needed.
+
+So I decided to build my own, in the terminal, as that's how I like my computing.
+
+Local, private and dead simple.
+
 ## Features
 
-- **12-month forecast view** - Shows projected expenses, income, and balance for the next 12 months
-- **Expense and Income management** - Add, edit, and delete expense/income entries
-    - **Recurring entries** - Support for one-time, monthly, and yearly recurring transactions
-    - **Category tracking** - Organize entries by categories
+- **12-month forecast view** - Shows projected expenses, income, and balance
+  for the next 12 months
+- **Expense and Income management** - Add, edit, and delete expense/income
+  entries
+- **Recurring entries** - Support for one-time, monthly, and yearly recurring
+  transactions
+
 
 ## Screenshots
 
@@ -21,14 +41,6 @@ Main screen:
 Adding an expense:
 
 [![Add Expense](./demo_add_expense.svg)](./demo_add_expense.svg)
-
-## Installation
-
-Install MooMoolah using pip:
-
-```bash
-pip install moomoolah
-```
 
 ## Usage
 
