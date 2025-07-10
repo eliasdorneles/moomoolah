@@ -46,6 +46,14 @@ reset-release:  ## Reset the last release preparation
 publish-release:  ## Publish the prepared release to PyPI and GitHub
 	@./scripts/release.sh publish
 
+.PHONY: new-screenshots
+new-screenshots:  ## Generate new screenshots for previewing
+	uv run python scripts/update_screenshots.py
+
+.PHONY: update-screenshots
+update-screenshots: new-screenshots  ## Update screenshots in the documentation
+	uv run python scripts/update_screenshots.py --approve
+
 # Implements this pattern for autodocumenting Makefiles:
 # https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 #
