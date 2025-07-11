@@ -24,6 +24,7 @@ CURRENCY_FORMATS = {
     "CAD": CurrencyFormat("C$", "CAD", 2, ".", ","),
     "AUD": CurrencyFormat("A$", "AUD", 2, ".", ","),
     "BRL": CurrencyFormat("R$", "BRL", 2, ",", "."),
+    "TL": CurrencyFormat("₺", "TL", 2, ",", "."),
 }
 
 
