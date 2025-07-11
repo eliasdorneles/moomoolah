@@ -56,6 +56,12 @@ class TestCurrencyFormatting:
         result = format_currency(amount, "BRL")
         assert result == "R$1.234,56"
 
+    def test_format_currency_tl(self):
+        """Test TL currency formatting."""
+        amount = Decimal("1234.56")
+        result = format_currency(amount, "TL")
+        assert result == "₺1.234,56"
+
     def test_format_currency_small_amount(self):
         """Test formatting small amounts."""
         amount = Decimal("10.50")
@@ -82,7 +88,7 @@ class TestCurrencyFormatting:
 
     def test_currency_formats_completeness(self):
         """Test that all expected currencies are defined in CURRENCY_FORMATS."""
-        expected_currencies = {"EUR", "USD", "GBP", "JPY", "CAD", "AUD", "BRL"}
+        expected_currencies = {"EUR", "USD", "GBP", "JPY", "CAD", "AUD", "BRL", "TL"}
         actual_currencies = set(CURRENCY_FORMATS.keys())
         assert actual_currencies == expected_currencies
 
